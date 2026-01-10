@@ -19,34 +19,34 @@ logging.basicConfig(
 
 CONFIG_FILE = "initial_coordinates.txt"
 ASSETS = {
-    "challenge": "src/assets/challenge.png",
-    # "back_fighting": "src/assets/back.png",
-    # "back_challenge": "src/assets/back.png",
-    "back_umbra": "src/assets/back.png",
-    "confirm": "src/assets/confirm.png",
-    "failed": "src/assets/failed.png",
-    "win": "src/assets/win.png",
-    "x3_click": "src/assets/x3_click.png",
-    "to_umbra": "src/assets/to_umbra.png",
-    "tach": "src/assets/tach.png",
-    "tach_all": "src/assets/tach_all.png",
-    "tach_confirm": "src/assets/tach_confirm.png",
-    "lvl3_ruongNguyen_1": "src/assets/text_lvl3_ruongNguyen_1.png",
-    "lvl3_ruongNguyen_2": "src/assets/text_lvl3_ruongNguyen_2.png",
-    "lvl1_boLacQuaiVat_1": "src/assets/text_lvl1_boLacQuaiVat_1.png",
-    "lvl1_boLacQuaiVat_2": "src/assets/text_lvl1_boLacQuaiVat_2.png",
-    "lvl1_suoiSinhMenh": "src/assets/text_lvl1_suoiSinhMenh.png",
-    "lvl1_suoiTinhThan_1": "src/assets/text_lvl1_suoiTinhThan_1.png",
-    "lvl1_suoiTinhThan_2": "src/assets/text_lvl1_suoiTinhThan_2.png",
-    "lvl1_teDanCoDai_1": "src/assets/text_lvl1_teDanCoDai_1.png",
-    "lvl1_teDanCoDai_2": "src/assets/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_1": "src/assets/text_lvl2_hangOQuaiVat_1.png",
-    "lvl2_hangOQuaiVat_2": "src/assets/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_1": "src/assets/text_lvl3_toChinhQuaiVat_1.png",
-    "lvl3_toChinhQuaiVat_2": "src/assets/text_lvl3_toChinhQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_3": "src/assets/text_lvl3_toChinhQuaiVat_3.png",
-    "lvl3_toChinhQuaiVat_4": "src/assets/text_lvl3_toChinhQuaiVat_4.png",
-    "lvl5_banDoChuaRo": "src/assets/text_lvl5_banDoChuaRo.png"
+    "challenge": "src/assets/backup/challenge.png",
+    "back_fighting": "src/assets/backup/back.png",
+    "back_challenge": "src/assets/backup/back.png",
+    "back_umbra": "src/assets/backup/back.png",
+    "confirm": "src/assets/backup/confirm.png",
+    "failed": "src/assets/backup/failed.png",
+    "win": "src/assets/backup/win.png",
+    "x3_click": "src/assets/backup/x3_click.png",
+    "to_umbra": "src/assets/backup/to_umbra.png",
+    "tach": "src/assets/backup/tach.png",
+    "tach_all": "src/assets/backup/tach_all.png",
+    "tach_confirm": "src/assets/backup/tach_confirm.png",
+    "lvl3_ruongNguyen_1": "src/assets/backup/text_lvl3_ruongNguyen_1.png",
+    "lvl3_ruongNguyen_2": "src/assets/backup/text_lvl3_ruongNguyen_2.png",
+    "lvl1_boLacQuaiVat_1": "src/assets/backup/text_lvl1_boLacQuaiVat_1.png",
+    "lvl1_boLacQuaiVat_2": "src/assets/backup/text_lvl1_boLacQuaiVat_2.png",
+    "lvl1_suoiSinhMenh": "src/assets/backup/text_lvl1_suoiSinhMenh.png",
+    "lvl1_suoiTinhThan_1": "src/assets/backup/text_lvl1_suoiTinhThan_1.png",
+    "lvl1_suoiTinhThan_2": "src/assets/backup/text_lvl1_suoiTinhThan_2.png",
+    "lvl1_teDanCoDai_1": "src/assets/backup/text_lvl1_teDanCoDai_1.png",
+    "lvl1_teDanCoDai_2": "src/assets/backup/text_lvl1_teDanCoDai_2.png",
+    "lvl2_hangOQuaiVat_1": "src/assets/backup/text_lvl2_hangOQuaiVat_1.png",
+    "lvl2_hangOQuaiVat_2": "src/assets/backup/text_lvl2_hangOQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_1": "src/assets/backup/text_lvl3_toChinhQuaiVat_1.png",
+    "lvl3_toChinhQuaiVat_2": "src/assets/backup/text_lvl3_toChinhQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_3": "src/assets/backup/text_lvl3_toChinhQuaiVat_3.png",
+    "lvl3_toChinhQuaiVat_4": "src/assets/backup/text_lvl3_toChinhQuaiVat_4.png",
+    "lvl5_banDoChuaRo": "src/assets/backup/text_lvl5_banDoChuaRo.png"
 }
 
 PRIORITY_LIST = [
@@ -240,7 +240,8 @@ def run_debug_dynamic():
     # Logic quét đưa vào thread
     def scan_loop():
         # 3. Limited scan region
-        limited_region = (40, 300, 400, 460)
+        # limited_region = (40, 300, 400, 460)
+        limited_region = None
 
         current_detected_map = {}  # Dùng dict để lưu trữ theo tên asset hoặc vị trí để tránh duplicate
 

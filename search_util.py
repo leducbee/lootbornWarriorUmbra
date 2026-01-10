@@ -7,9 +7,32 @@ from PIL import Image
 # Global default confidence for image searching
 DEFAULT_CONFIDENCE = 0.7
 
+_logged_scale_info = False
+
+def get_screen_scale(region=None):
+    """
+    Tính toán tỷ lệ giữa pixel thực tế (physical) và tọa độ logical.
+    Hỗ trợ macOS Retina và Windows DPI Scaling.
+    """
+    global _logged_scale_info
+    screen_width, screen_height = pyautogui.size()
+    s = pyautogui.screenshot(region=region)
+    # Scale = (Số pixel thực tế) / (Kích thước logical)
+    scale = s.width / (region[2] if region else screen_width)
+    
+    # Thêm log theo yêu cầu, chỉ log lần đầu tiên
+    if not _logged_scale_info:
+        logging.info(f"Screen size (Logical): {screen_width}x{screen_height}")
+        logging.info(f"Screenshot size (Physical): {s.width}x{s.height}")
+        logging.info(f"Scale value: {scale}")
+        _logged_scale_info = True
+    
+    return s, scale
+
 def find_image(image_path, timeout=5, confidence=DEFAULT_CONFIDENCE, region=None):
     """
     Checks if image appears on screen.
+    Tự động xử lý tỷ lệ màn hình (Retina/DPI Scaling).
     
     Returns:
         tuple: (x, y) logical coordinates if found, None if not found.
@@ -18,10 +41,7 @@ def find_image(image_path, timeout=5, confidence=DEFAULT_CONFIDENCE, region=None
         logging.error(f"File {image_path} not found")
         return None
 
-    screen_width, screen_height = pyautogui.size()
-    s = pyautogui.screenshot(region=region)
-    # Neu co region, scale phai tinh dua tren screenshot s
-    scale = s.width / (region[2] if region else screen_width)
+    s, scale = get_screen_scale(region)
     
     temp_retina = f"temp_find_{int(time.time()*1000)}.png"
     try:
@@ -58,10 +78,9 @@ def find_image(image_path, timeout=5, confidence=DEFAULT_CONFIDENCE, region=None
 def find_multiple_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, region=None):
     """
     Quét danh sách assets trên cùng một ảnh chụp màn hình để đảm bảo ưu tiên đúng.
+    Hỗ trợ Retina/Windows DPI Scaling.
     """
-    screen_width, screen_height = pyautogui.size()
-    s = pyautogui.screenshot(region=region)
-    scale = s.width / (region[2] if region else screen_width)
+    s, scale = get_screen_scale(region)
     
     for key in priority_list:
         image_path = assets_dict.get(key)
@@ -93,11 +112,10 @@ def find_multiple_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDEN
 def find_all_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, region=None):
     """
     Tìm tất cả các assets trong priority_list đang xuất hiện trên màn hình.
-    Trả về danh sách tuple (tên_asset, location) với location là (left, top, width, height) trong hệ tọa độ màn hình thực.
+    Trả về danh sách tuple (tên_asset, location) với location là (left, top, width, height) trong hệ tọa độ màn hình logical.
+    Hỗ trợ Retina/Windows DPI Scaling.
     """
-    screen_width, screen_height = pyautogui.size()
-    s = pyautogui.screenshot(region=region)
-    scale = s.width / (region[2] if region else screen_width)
+    s, scale = get_screen_scale(region)
     
     found_assets = []
     
@@ -115,11 +133,13 @@ def find_all_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, r
             location = pyautogui.locate(temp_retina, s, confidence=confidence)
             if location:
                 # location ở đây là tương đối so với screenshot 's'
-                # Cần chuyển về tọa độ màn hình thực tế nếu có region
-                real_left = int(location.left + (region[0] if region else 0))
-                real_top = int(location.top + (region[1] if region else 0))
-                real_width = int(location.width)
-                real_height = int(location.height)
+                # Cần chuyển về tọa độ màn hình logical (chia cho scale)
+                offset_x = region[0] if region else 0
+                offset_y = region[1] if region else 0
+                real_left = int(location.left / scale + offset_x)
+                real_top = int(location.top / scale + offset_y)
+                real_width = int(location.width / scale)
+                real_height = int(location.height / scale)
                 real_location = (real_left, real_top, real_width, real_height)
                 found_assets.append((key, real_location))
         except Exception as e:
@@ -137,33 +157,28 @@ def click_at(x, y, double=True):
 
 def wait_and_click(image_path, timeout=10, confidence=DEFAULT_CONFIDENCE, double=True, region=None):
     """
-    Waits for image to appear on screen and performs a double click.
-    Default handling for Retina displays.
+    Waits for image to appear on screen and performs a click.
+    Hỗ trợ Retina/Windows DPI Scaling.
     
     Args:
         image_path (str): Path to the template image.
         timeout (int): Maximum wait time (seconds). Default is 10s.
-        confidence (float): Search accuracy. Default is 0.9.
+        confidence (float): Search accuracy. Default is 0.7.
         region (tuple): (left, top, width, height) to search in.
     
     Returns:
-        bool: True if found and double-clicked, False if timed out.
+        bool: True if found and clicked, False if timed out.
     """
     if not os.path.exists(image_path):
         logging.error(f"File {image_path} not found")
         return False
 
-    # Get file name without extension
-    file_name = os.path.splitext(os.path.basename(image_path))[0]
-
     start_time = time.time()
     
-    # Get screen info for Retina handling
-    screen_width, screen_height = pyautogui.size()
-    s = pyautogui.screenshot(region=region)
-    scale = s.width / (region[2] if region else screen_width)
+    # Get screen info for Retina/Windows DPI Scaling
+    s, scale = get_screen_scale(region)
     
-    # Prepare image for Retina (upscale by scale)
+    # Prepare image
     temp_retina = f"temp_retina_{int(time.time())}.png"
     try:
         with Image.open(image_path) as img:

@@ -30,34 +30,34 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
 ASSETS = {
-    "challenge": "src/assets/challenge.png",
-    "back_fighting": "src/assets/back.png",
-    "back_challenge": "src/assets/back.png",
-    "back_umbra": "src/assets/back.png",
-    "confirm": "src/assets/confirm.png",
-    "failed": "src/assets/failed.png",
-    "win": "src/assets/win.png",
-    "x3_click": "src/assets/x3_click.png",
-    "to_umbra": "src/assets/to_umbra.png",
-    "tach": "src/assets/tach.png",
-    "tach_all": "src/assets/tach_all.png",
-    "tach_confirm": "src/assets/tach_confirm.png",
-    "lvl3_ruongNguyen_1": "src/assets/text_lvl3_ruongNguyen_1.png",
-    "lvl3_ruongNguyen_2": "src/assets/text_lvl3_ruongNguyen_2.png",
-    "lvl1_boLacQuaiVat_1": "src/assets/text_lvl1_boLacQuaiVat_1.png",
-    "lvl1_boLacQuaiVat_2": "src/assets/text_lvl1_boLacQuaiVat_2.png",
-    "lvl1_suoiSinhMenh": "src/assets/text_lvl1_suoiSinhMenh.png",
-    "lvl1_suoiTinhThan_1": "src/assets/text_lvl1_suoiTinhThan_1.png",
-    "lvl1_suoiTinhThan_2": "src/assets/text_lvl1_suoiTinhThan_2.png",
-    "lvl1_teDanCoDai_1": "src/assets/text_lvl1_teDanCoDai_1.png",
-    "lvl1_teDanCoDai_2": "src/assets/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_1": "src/assets/text_lvl2_hangOQuaiVat_1.png",
-    "lvl2_hangOQuaiVat_2": "src/assets/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_1": "src/assets/text_lvl3_toChinhQuaiVat_1.png",
-    "lvl3_toChinhQuaiVat_2": "src/assets/text_lvl3_toChinhQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_3": "src/assets/text_lvl3_toChinhQuaiVat_3.png",
-    "lvl3_toChinhQuaiVat_4": "src/assets/text_lvl3_toChinhQuaiVat_4.png",
-    "lvl5_banDoChuaRo": "src/assets/text_lvl5_banDoChuaRo.png"
+    "challenge": "src/assets/working/challenge.png",
+    "back_fighting": "src/assets/working/back.png",
+    "back_challenge": "src/assets/working/back.png",
+    "back_umbra": "src/assets/working/back.png",
+    "confirm": "src/assets/working/confirm.png",
+    "failed": "src/assets/working/failed.png",
+    "win": "src/assets/working/win.png",
+    "x3_click": "src/assets/working/x3_click.png",
+    "to_umbra": "src/assets/working/to_umbra.png",
+    "tach": "src/assets/working/tach.png",
+    "tach_all": "src/assets/working/tach_all.png",
+    "tach_confirm": "src/assets/working/tach_confirm.png",
+    "lvl3_ruongNguyen_1": "src/assets/working/text_lvl3_ruongNguyen_1.png",
+    "lvl3_ruongNguyen_2": "src/assets/working/text_lvl3_ruongNguyen_2.png",
+    "lvl1_boLacQuaiVat_1": "src/assets/working/text_lvl1_boLacQuaiVat_1.png",
+    "lvl1_boLacQuaiVat_2": "src/assets/working/text_lvl1_boLacQuaiVat_2.png",
+    "lvl1_suoiSinhMenh": "src/assets/working/text_lvl1_suoiSinhMenh.png",
+    "lvl1_suoiTinhThan_1": "src/assets/working/text_lvl1_suoiTinhThan_1.png",
+    "lvl1_suoiTinhThan_2": "src/assets/working/text_lvl1_suoiTinhThan_2.png",
+    "lvl1_teDanCoDai_1": "src/assets/working/text_lvl1_teDanCoDai_1.png",
+    "lvl1_teDanCoDai_2": "src/assets/working/text_lvl1_teDanCoDai_2.png",
+    "lvl2_hangOQuaiVat_1": "src/assets/working/text_lvl2_hangOQuaiVat_1.png",
+    "lvl2_hangOQuaiVat_2": "src/assets/working/text_lvl2_hangOQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_1": "src/assets/working/text_lvl3_toChinhQuaiVat_1.png",
+    "lvl3_toChinhQuaiVat_2": "src/assets/working/text_lvl3_toChinhQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_3": "src/assets/working/text_lvl3_toChinhQuaiVat_3.png",
+    "lvl3_toChinhQuaiVat_4": "src/assets/working/text_lvl3_toChinhQuaiVat_4.png",
+    "lvl5_banDoChuaRo": "src/assets/working/text_lvl5_banDoChuaRo.png"
 }
 
 PRIORITY_LIST = [
@@ -377,7 +377,7 @@ class AutoScriptApplication:
                 msg = f"💎 Treasure found! (run {self.route_count})"
                 import pyautogui
                 sw, sh = pyautogui.size()
-                photo_path = f"src/assets/treasure.png"
+                photo_path = f"src/assets/working/treasure.png"
                 capture_region(0, 0, sw, sh, save_path=photo_path)
 
                 asyncio.run(send_telegram_photo(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, photo_path, caption=msg))

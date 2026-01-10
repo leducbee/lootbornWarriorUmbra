@@ -1,5 +1,6 @@
 import sys
 import threading
+import logging
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import Qt, QRect, QPoint, pyqtSignal, QObject
 from PyQt5.QtGui import QPainter, QPen, QColor, QFont
@@ -26,16 +27,16 @@ class QtHUD(QWidget):
         self.setWindowFlags(
             Qt.FramelessWindowHint |
             Qt.WindowStaysOnTopHint |
-            Qt.Tool |
             Qt.WindowTransparentForInput |
-            Qt.WindowDoesNotAcceptFocus
+            Qt.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_NoSystemBackground)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
 
         # Specific macOS optimizations to stay on top
-        self.setAttribute(Qt.WA_MacAlwaysShowToolWindow)
+        self.setAttribute(Qt.WA_MacAlwaysShowToolWindow, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
 
         # Full screen
         screen = self.app.primaryScreen()
@@ -45,10 +46,14 @@ class QtHUD(QWidget):
         self.show()
 
     def _set_regions(self, regions):
+        # logging.info(f"HUD: Updating {len(regions)} regions")
         self.regions = regions
         self.update()  # Trigger repaint
 
     def paintEvent(self, event):
+        if not self.regions:
+            return
+            
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
