@@ -15,39 +15,51 @@ logging.basicConfig(
 
 # Danh sách Assets mục tiêu (Dựa trên debug_testing_dynamic.py)
 # Bạn có thể thêm bớt các asset vào dict này
-ASSETS_PATHS = {
-    "challenge": "src/assets/scanning/challenge.png",
-    "back_fighting": "src/assets/scanning/back.png",
-    "back_challenge": "src/assets/scanning/back.png",
-    "back_umbra": "src/assets/scanning/back.png",
-    "confirm": "src/assets/scanning/confirm.png",
-    "failed": "src/assets/scanning/failed.png",
-    "win": "src/assets/scanning/win.png",
-    "x3_click": "src/assets/scanning/x3_click.png",
-    "to_umbra": "src/assets/scanning/to_umbra.png",
-    "tach": "src/assets/scanning/tach.png",
-    "tach_all": "src/assets/scanning/tach_all.png",
-    "tach_confirm": "src/assets/scanning/tach_confirm.png",
-    "lvl3_ruongNguyen_1": "src/assets/scanning/text_lvl3_ruongNguyen_1.png",
-    "lvl3_ruongNguyen_2": "src/assets/scanning/text_lvl3_ruongNguyen_2.png",
-    "lvl1_boLacQuaiVat_1": "src/assets/scanning/text_lvl1_boLacQuaiVat_1.png",
-    "lvl1_boLacQuaiVat_2": "src/assets/scanning/text_lvl1_boLacQuaiVat_2.png",
-    "lvl1_suoiSinhMenh": "src/assets/scanning/text_lvl1_suoiSinhMenh.png",
-    "lvl1_suoiTinhThan_1": "src/assets/scanning/text_lvl1_suoiTinhThan_1.png",
-    "lvl1_suoiTinhThan_2": "src/assets/scanning/text_lvl1_suoiTinhThan_2.png",
-    "lvl1_teDanCoDai_1": "src/assets/scanning/text_lvl1_teDanCoDai_1.png",
-    "lvl1_teDanCoDai_2": "src/assets/scanning/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_1": "src/assets/scanning/text_lvl2_hangOQuaiVat_1.png",
-    "lvl2_hangOQuaiVat_2": "src/assets/scanning/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_1": "src/assets/scanning/text_lvl3_toChinhQuaiVat_1.png",
-    "lvl3_toChinhQuaiVat_2": "src/assets/scanning/text_lvl3_toChinhQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_3": "src/assets/scanning/text_lvl3_toChinhQuaiVat_3.png",
-    "lvl3_toChinhQuaiVat_4": "src/assets/scanning/text_lvl3_toChinhQuaiVat_4.png",
-    "lvl5_banDoChuaRo": "src/assets/scanning/text_lvl5_banDoChuaRo.png"
+ASSETS_MAPPING = {
+    "challenge": "challenge.png",
+    "back_fighting": "back.png",
+    "back_challenge": "back.png",
+    "back_umbra": "back.png",
+    "confirm": "confirm.png",
+    "failed": "failed.png",
+    "win": "win.png",
+    "x3_click": "x3_click.png",
+    "to_umbra": "to_umbra.png",
+    "tach": "tach.png",
+    "tach_all": "tach_all.png",
+    "tach_confirm": "tach_confirm.png",
+    "lvl3_ruongNguyen_1": "text_lvl3_ruongNguyen_1.png",
+    "lvl3_ruongNguyen_2": "text_lvl3_ruongNguyen_2.png",
+    "lvl1_boLacQuaiVat_1": "text_lvl1_boLacQuaiVat_1.png",
+    "lvl1_boLacQuaiVat_2": "text_lvl1_boLacQuaiVat_2.png",
+    "lvl1_suoiSinhMenh": "text_lvl1_suoiSinhMenh.png",
+    "lvl1_suoiTinhThan_1": "text_lvl1_suoiTinhThan_1.png",
+    "lvl1_suoiTinhThan_2": "text_lvl1_suoiTinhThan_2.png",
+    "lvl1_teDanCoDai_1": "text_lvl1_teDanCoDai_1.png",
+    "lvl1_teDanCoDai_2": "text_lvl1_teDanCoDai_2.png",
+    "lvl2_hangOQuaiVat_1": "text_lvl2_hangOQuaiVat_1.png",
+    "lvl2_hangOQuaiVat_2": "text_lvl2_hangOQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_1": "text_lvl3_toChinhQuaiVat_1.png",
+    "lvl3_toChinhQuaiVat_2": "text_lvl3_toChinhQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_3": "text_lvl3_toChinhQuaiVat_3.png",
+    "lvl3_toChinhQuaiVat_4": "text_lvl3_toChinhQuaiVat_4.png",
+    "lvl5_banDoChuaRo": "text_lvl5_banDoChuaRo.png"
 }
 
-def scan_logic(hud):
-    logging.info("Scanner logic started. Waiting for assets in 'src/assets/scanning/'...")
+def scan_logic(hud, base_path=None):
+    if base_path is None:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    # Cấu hình đường dẫn
+    scanning_dir = os.path.join(base_path, "src", "assets", "scanning")
+    coord_file = os.path.join(base_path, "found_coordinate_scanning.txt")
+    
+    # Xây dựng ASSETS_PATHS dựa trên base_path
+    assets_paths = {}
+    for name, filename in ASSETS_MAPPING.items():
+        assets_paths[name] = os.path.join(scanning_dir, filename)
+
+    logging.info(f"Scanner logic started. Waiting for assets in '{scanning_dir}'...")
     
     while True:
         existing_assets = {}
@@ -55,9 +67,9 @@ def scan_logic(hud):
         
         # 1. Đọc dữ liệu cũ đang có trong file để kiểm tra xem đã có tọa độ chưa
         stored_coordinates = {}
-        if os.path.exists("found_coordinate_scanning.txt"):
+        if os.path.exists(coord_file):
             try:
-                with open("found_coordinate_scanning.txt", "r") as f:
+                with open(coord_file, "r") as f:
                     for line in f:
                         line = line.strip()
                         if ":" in line:
@@ -70,7 +82,7 @@ def scan_logic(hud):
                 logging.error(f"Error reading coordinate file: {e}")
 
         # 2. Kiểm tra sự tồn tại của file vật lý VÀ tọa độ trong file txt
-        for name, path in ASSETS_PATHS.items():
+        for name, path in assets_paths.items():
             file_exists = os.path.exists(path)
             
             # Đối với các asset lvl, ta coi như coord_exists luôn True nếu file vật lý tồn tại
@@ -95,7 +107,7 @@ def scan_logic(hud):
         
         # 4. Quét màn hình cho những assets đang có file (luôn quét những cái có file để update tọa độ)
         # Ở bước này ta quét tất cả những gì CÓ FILE để lấp đầy file txt
-        scan_targets = {name: path for name, path in ASSETS_PATHS.items() if os.path.exists(path)}
+        scan_targets = {name: path for name, path in assets_paths.items() if os.path.exists(path)}
         
         found_on_screen = []
         portal_regions = {"left_portal_text": None, "right_portal_text": None}
@@ -142,10 +154,10 @@ def scan_logic(hud):
                         stored_coordinates[name] = str(loc)
                 
                 # Ghi lại toàn bộ vào file
-                with open("found_coordinate_scanning.txt", "w") as f:
+                with open(coord_file, "w") as f:
                     for name, loc_str in stored_coordinates.items():
                         f.write(f"{name}: {loc_str}\n")
-                logging.info(f"Updated and merged coordinates to found_coordinate_scanning.txt")
+                logging.info(f"Updated and merged coordinates to {coord_file}")
         except Exception as e:
             logging.error(f"Error updating coordinate file: {e}")
         

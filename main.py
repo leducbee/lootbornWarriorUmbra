@@ -1,9 +1,18 @@
 import sys
 import logging
 import threading
+import os
+
+# Xác định đường dẫn gốc của ứng dụng
+if getattr(sys, 'frozen', False):
+    # Nếu đang chạy từ file executable
+    BASE_PATH = os.path.dirname(sys.executable)
+else:
+    # Nếu đang chạy script .py bình thường
+    BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 def run_scan_and_collect():
-    logging.info("Starting Scan & Collect...")
+    logging.info(f"Starting Scan & Collect (Base: {BASE_PATH})...")
     from scan_and_collect import scan_logic
     from hud_util import HUD
     
@@ -11,7 +20,7 @@ def run_scan_and_collect():
     hud = HUD()
     
     # Chạy vòng lặp quét trong một thread riêng để không block UI của HUD
-    scanner_thread = threading.Thread(target=scan_logic, args=(hud,), daemon=True)
+    scanner_thread = threading.Thread(target=scan_logic, args=(hud, BASE_PATH), daemon=True)
     scanner_thread.start()
     
     try:
@@ -21,10 +30,10 @@ def run_scan_and_collect():
         logging.info("Scanner stopped by user.")
 
 def run_auto_script():
-    logging.info("Starting Auto Script Application...")
+    logging.info(f"Starting Auto Script Application (Base: {BASE_PATH})...")
     from auto_script_application import AutoScriptApplication
     
-    app = AutoScriptApplication()
+    app = AutoScriptApplication(base_path=BASE_PATH)
     app.run()
 
 def main():

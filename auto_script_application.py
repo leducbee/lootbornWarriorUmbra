@@ -160,7 +160,18 @@ def click_scan_result(scan_results, key):
 
 
 class AutoScriptApplication:
-    def __init__(self):
+    def __init__(self, base_path=None):
+        if base_path is None:
+            if getattr(sys, 'frozen', False):
+                self.base_path = os.path.dirname(sys.executable)
+            else:
+                self.base_path = os.path.dirname(os.path.abspath(__file__))
+        else:
+            self.base_path = base_path
+
+        self.config_file = os.path.join(self.base_path, "config.json")
+        self.coords_file = os.path.join(self.base_path, "initial_coordinates.txt")
+
         self.running = True
         self.paused = False
         self.listener = None
@@ -181,10 +192,11 @@ class AutoScriptApplication:
         self.initialize_telegram()
 
     def initialize_telegram(self):
-        if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+        token, chat_id = self.load_telegram_config_from_file()
+        if token and chat_id:
             try:
                 logging.info("Initializing Telegram bot and clearing old updates...")
-                bot = Bot(token=TELEGRAM_TOKEN)
+                bot = Bot(token=token)
                 loop = asyncio.new_event_loop()
                 updates = loop.run_until_complete(self._get_latest_update_id(bot))
                 loop.close()
@@ -196,25 +208,48 @@ class AutoScriptApplication:
         else:
             logging.info("Telegram configuration missing or placeholder detected. Telegram notifications disabled.")
 
+    def load_telegram_config_from_file(self):
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    token = config.get("telegram_token", "")
+                    chat_id = str(config.get("telegram_chat_id", ""))
+                    
+                    # Check for placeholders
+                    if token in ["", "xx", "your_token_here"] or chat_id in ["", "yy", "your_chat_id_here"]:
+                        return "", ""
+                    return token, chat_id
+            except Exception as e:
+                logging.error(f"Error loading {self.config_file} for Telegram: {e}")
+        return "", ""
+
     def load_config(self):
         """
         Load configuration from config.json
         """
-        if not os.path.exists(CONFIG_FILE):
-            logging.warning(f"File {CONFIG_FILE} not found. Using default values")
-            self._update_assets_paths("src/assets/working/")
+        if not os.path.exists(self.config_file):
+            logging.warning(f"File {self.config_file} not found. Using default values")
+            self._update_assets_paths(os.path.join(self.base_path, "src/assets/working/"))
             return
 
         try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            with open(self.config_file, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
                 self.max_run = config_data.get("max_run", 0)
-                assets_dir = config_data.get("assets_dir", "src/assets/working/")
+                assets_dir_relative = config_data.get("assets_dir", "src/assets/working/")
+                
+                # Nếu assets_dir là tương đối, nối nó với base_path
+                if not os.path.isabs(assets_dir_relative):
+                    assets_dir = os.path.join(self.base_path, assets_dir_relative)
+                else:
+                    assets_dir = assets_dir_relative
+                
                 self._update_assets_paths(assets_dir)
             logging.info(f"Loaded config: MAX_RUN = {self.max_run}, ASSETS_DIR = {assets_dir}")
         except Exception as e:
             logging.error(f"Error loading config: {e}")
-            self._update_assets_paths("src/assets/working/")
+            self._update_assets_paths(os.path.join(self.base_path, "src/assets/working/"))
 
     def _update_assets_paths(self, assets_dir):
         """
@@ -231,15 +266,13 @@ class AutoScriptApplication:
         """
         try:
             config_data = {}
-            if os.path.exists(CONFIG_FILE):
-                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, "r", encoding="utf-8") as f:
                     config_data = json.load(f)
             
             config_data["max_run"] = self.max_run
-            # assets_dir is typically changed manually in the config file, 
-            # but we can preserve it if it exists.
             
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(config_data, f, indent=2)
             logging.info(f"Saved config: MAX_RUN = {self.max_run}")
         except Exception as e:
@@ -250,13 +283,12 @@ class AutoScriptApplication:
         Load initial coordinates from initial_coordinates.txt
         Format: name: (x, y, w, h)
         """
-        file_path = "initial_coordinates.txt"
-        if not os.path.exists(file_path):
-            logging.error(f"File {file_path} not found.")
+        if not os.path.exists(self.coords_file):
+            logging.error(f"File {self.coords_file} not found.")
             return
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(self.coords_file, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line or ":" not in line:
@@ -269,7 +301,7 @@ class AutoScriptApplication:
                     if coords_str:
                         coords = tuple(map(int, coords_str.split(",")))
                         self.regions[name] = coords
-            logging.info(f"Loaded regions from {file_path}: {list(self.regions.keys())}")
+            logging.info(f"Loaded regions from {self.coords_file}: {list(self.regions.keys())}")
         except Exception as e:
             logging.error(f"Error loading initial coordinates: {e}")
 
