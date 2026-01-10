@@ -3,8 +3,12 @@
 AutoScript là một ứng dụng mạnh mẽ được thiết kế để tự động hóa các thao tác trong game dựa trên nhận diện hình ảnh. Công cụ này hỗ trợ người chơi thực hiện các chuỗi hành động lặp đi lặp lại một cách thông minh, đặc biệt là trong việc săn tìm các mục tiêu cụ thể.
 
 ### 📥 Tải về (Download)
-*   **Windows:** [Tải xuống cho Windows](dist/win/AutoScript)
-*   **macOS:** [Tải xuống cho macOS](dist/mac/AutoScript)
+Để đảm bảo ứng dụng chạy ổn định với đầy đủ cấu hình và asset, vui lòng tải xuống file nén tương ứng với hệ điều hành của bạn:
+
+*   **Windows:** [Tải xuống AutoScript cho Windows (.zip)](dist/AutoScript_win.zip)
+*   **macOS:** [Tải xuống AutoScript cho macOS (.zip)](dist/AutoScript_mac.zip)
+
+**Lưu ý:** Sau khi tải về, bạn hãy giải nén. Bạn phải giữ nguyên cấu trúc thư mục (bao gồm file `AutoScript`, `config.json`, `initial_coordinates.txt` và thư mục `src`) để công cụ hoạt động chính xác.
 
 ---
 
@@ -54,7 +58,7 @@ pip install pyautogui opencv-python numpy pillow pynput python-telegram-bot
     ```bash
     python auto_script_application.py
     ```
-    (Hoặc mở file thực thi `AutoScript`). Lúc này tool sẽ chạy ở chế độ Auto hoàn toàn.
+    (Hoặc chạy file thực thi `AutoScript` trong thư mục đã tải). Lúc này tool sẽ chạy ở chế độ Auto hoàn toàn.
 
 #### Bước 3: Xử lý khi gặp Rương Nguyên (Treasure)
 1.  Khi gặp **Rương Nguyên**, ứng dụng sẽ tự động dừng lại để đảm bảo an toàn. 

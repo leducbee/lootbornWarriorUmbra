@@ -20,5 +20,9 @@ mkdir -p dist/mac/src/assets/working
 mkdir -p dist/mac/src/assets/scanning
 
 echo "--- Build hoàn tất! ---"
+echo "--- Đang nén thư mục thành file zip ---"
+cd dist && zip -r AutoScript_mac.zip mac && cd ..
+
 echo "File thực thi và các cấu hình nằm trong thư mục: dist/mac"
-echo "Lưu ý: Bạn cần tự bỏ các file ảnh asset vào thư mục src/assets/working và src/assets/scanning trong dist/mac."
+echo "File nén: dist/AutoScript_mac.zip"
+echo "Lưu ý: Bạn cần tự bỏ các file ảnh asset vào thư mục src/assets/working và src/assets/scanning trong dist/mac (hoặc giải nén zip rồi bỏ vào)."
