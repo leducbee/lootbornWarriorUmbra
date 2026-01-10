@@ -42,10 +42,8 @@ ASSETS = {
     "lvl1_suoiTinhThan_2": "src/assets/text_lvl1_suoiTinhThan_2.png",
     "lvl1_teDanCoDai_1": "src/assets/text_lvl1_teDanCoDai_1.png",
     "lvl1_teDanCoDai_2": "src/assets/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_0": "src/assets/text_lvl2_hangOQuaiVat_0.png",
     "lvl2_hangOQuaiVat_1": "src/assets/text_lvl2_hangOQuaiVat_1.png",
     "lvl2_hangOQuaiVat_2": "src/assets/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_0": "src/assets/text_lvl3_toChinhQuaiVat_0.png",
     "lvl3_toChinhQuaiVat_1": "src/assets/text_lvl3_toChinhQuaiVat_1.png",
     "lvl3_toChinhQuaiVat_2": "src/assets/text_lvl3_toChinhQuaiVat_2.png",
     "lvl3_toChinhQuaiVat_3": "src/assets/text_lvl3_toChinhQuaiVat_3.png",
@@ -63,10 +61,8 @@ PRIORITY_LIST = [
     "lvl1_suoiTinhThan_2",
     "lvl1_teDanCoDai_1",
     "lvl1_teDanCoDai_2",
-    "lvl2_hangOQuaiVat_0",
     "lvl2_hangOQuaiVat_1",
     "lvl2_hangOQuaiVat_2",
-    "lvl3_toChinhQuaiVat_0",
     "lvl3_toChinhQuaiVat_1",
     "lvl3_toChinhQuaiVat_2",
     "lvl3_toChinhQuaiVat_3",
@@ -78,7 +74,21 @@ PRIORITY_LIST = [
 
 
 # Global configuration
-PORTAL_REGION = (40, 300, 400, 450)  # Vung cua so Redfinger App tren man hinh 1440x900
+REGIONS = {
+    "left_text": (123, 343, 75, 26),
+    "right_text": (277, 343, 69, 27),
+    "left_icon": (146, 394, 29, 29),
+    "right_icon": (290, 396, 23, 26),
+    "back": (76, 729, 36, 33),
+    "fail": (188, 387, 90, 30),
+    "challenge": (176, 722, 112, 20),
+    "win": (174, 339, 120, 26),
+    "x3_click": (310, 619, 49, 33),
+    "tach": (85, 540, 58, 21),
+    "all": (273, 487, 66, 24),
+    "confirm_tach": (321, 537, 60, 26),
+    "confirm": (243, 511, 93, 34),
+}
 DEFAULT_CONFIDENCE = 0.7
 
 class AutoScriptApp:
@@ -192,7 +202,7 @@ class AutoScriptApp:
 
             # 1. Kiểm tra chiến thắng
             if not win_detected:
-                if find_image(ASSETS["win"], timeout=1):
+                if find_image(ASSETS["win"], timeout=1, region=REGIONS["win"]):
                     logging.info("Boss defeated! Win detected.")
                     win_detected = True
                     if is_ruong_nguyen:
@@ -202,7 +212,7 @@ class AutoScriptApp:
             # 2. Nếu đã thấy win, tìm và click x3_click
             if win_detected:
                 logging.info("Searching for x3_click button...")
-                if wait_and_click(ASSETS["x3_click"], timeout=10, confidence=DEFAULT_CONFIDENCE):
+                if wait_and_click(ASSETS["x3_click"], timeout=10, confidence=DEFAULT_CONFIDENCE, region=REGIONS["x3_click"]):
                     logging.info("Clicked x3_click!")
                     time.sleep(1)
                     return False
@@ -211,14 +221,16 @@ class AutoScriptApp:
                     # Co the win.png van con do, hoac x3_click chua hien. Loop tiep.
                     win_detected = False # Reset de check lai win hoac tiep tuc doi
             
-            # 3. Kiểm tra thất bại (quet toan man hinh)
-            if find_image(ASSETS["failed"], timeout=1):
+            # 3. Kiểm tra thất bại
+            if find_image(ASSETS["failed"], timeout=1, region=REGIONS["fail"]):
                 logging.info("Route failed! Clicking 'Failed'...")
-                wait_and_click(ASSETS["failed"], timeout=5)
+                wait_and_click(ASSETS["failed"], timeout=5, region=REGIONS["fail"])
                 return False
 
-            # 4. Kiểm tra xem có 2 portal mới chưa (quet o vung hardcode)
-            all_found = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=PORTAL_REGION)
+            # 4. Kiểm tra xem có 2 portal mới chưa (quet o 2 vung left/right)
+            all_found_left = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=REGIONS["left_text"])
+            all_found_right = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=REGIONS["right_text"])
+            all_found = all_found_left + all_found_right
             
             unique_portals = set()
             for asset_name in all_found:
@@ -258,7 +270,7 @@ class AutoScriptApp:
             if self.should_restart_route:
                 self.should_restart_route = False # Reset flag when at the start of route
 
-            if wait_and_click(ASSETS["challenge"], timeout=10, confidence=DEFAULT_CONFIDENCE):
+            if wait_and_click(ASSETS["challenge"], timeout=10, confidence=DEFAULT_CONFIDENCE, region=REGIONS["challenge"]):
                 challenge_fail_count = 0 # Reset count when found
                 break
             
@@ -299,27 +311,43 @@ class AutoScriptApp:
                 if self.paused or not self.running or self.should_restart_route:
                     return
 
-                name, pos = find_multiple_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=PORTAL_REGION)
-                if name:
-                    # Nếu tìm thấy win hoặc failed ngay tại đây, nghĩa là route đã kết thúc
-                    # Bo x3_click ra khoi day de chi trigger khi thay win
-                    if name in ["win", "failed"]:
-                        # Tránh bắt nhầm asset cũ ngay khi vừa start route (Wave 0)
-                        if self.portal_count == 0 and (time.time() - start_wait < 5):
-                            logging.info(f"Ignored potential stale end-of-route asset: {name}")
-                            time.sleep(1)
-                            continue
-                            
-                        logging.info(f"Detected end-of-route asset during target wait: {name}")
-                        if not self.wait_for_end_of_route(is_ruong_nguyen=self.targeted_ruong_nguyen):
-                            return
-                        break # Trở lại vòng lặp chính
+                # Scan all relevant regions
+                found_win = find_image(ASSETS["win"], timeout=0, region=REGIONS["win"])
+                found_failed = find_image(ASSETS["failed"], timeout=0, region=REGIONS["fail"])
+                
+                if found_win or found_failed:
+                    name = "win" if found_win else "failed"
+                    # Tránh bắt nhầm asset cũ ngay khi vừa start route (Wave 0)
+                    if self.portal_count == 0 and (time.time() - start_wait < 5):
+                        logging.info(f"Ignored potential stale end-of-route asset: {name}")
+                        time.sleep(1)
+                        continue
+                        
+                    logging.info(f"Detected end-of-route asset during target wait: {name}")
+                    if not self.wait_for_end_of_route(is_ruong_nguyen=self.targeted_ruong_nguyen):
+                        return
+                    break # Trở lại vòng lặp chính
 
-                    # double check 2nd time to avoid missing
-                    name, pos = find_multiple_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=PORTAL_REGION)
-                    if not name or name in ["win", "failed"]:
-                        continue # Re-scan
-                    target = (name, pos)
+                # Scan portals in left and right regions
+                name_l, pos_l = find_multiple_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=REGIONS["left_text"])
+                name_r, pos_r = find_multiple_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=REGIONS["right_text"])
+                
+                # Logic chọn target ưu tiên
+                target = None
+                if name_l and name_r:
+                    # So sánh độ ưu tiên nếu cả 2 vùng đều có portal
+                    idx_l = PRIORITY_LIST.index(name_l) if name_l in PRIORITY_LIST else 999
+                    idx_r = PRIORITY_LIST.index(name_r) if name_r in PRIORITY_LIST else 999
+                    if idx_l <= idx_r:
+                        target = (name_l, pos_l)
+                    else:
+                        target = (name_r, pos_r)
+                elif name_l:
+                    target = (name_l, pos_l)
+                elif name_r:
+                    target = (name_r, pos_r)
+
+                if target:
                     break
 
                 if not self.running:
@@ -332,7 +360,9 @@ class AutoScriptApp:
 
             self.portal_count += 1
             name, pos = target
-            all_found = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=PORTAL_REGION)
+            all_found_l = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=REGIONS["left_text"])
+            all_found_r = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=REGIONS["right_text"])
+            all_found = all_found_l + all_found_r
             
             # Group assets by their "portal type" to count actual distinct portals
             # Logic: remove the suffix _1, _2, _3 to get the base type
@@ -411,9 +441,9 @@ class AutoScriptApp:
 
                 if self.portal_count == 2:
                     logging.info(f"Wave 2 - Backing... (Found: {', '.join(all_found)}, No Ruong Nguyen)")
-                    if wait_and_click(ASSETS["back"], timeout=5):
-                        if wait_and_click(ASSETS["confirm"], timeout=5):
-                            wait_and_click(ASSETS["failed"], timeout=10)
+                    if wait_and_click(ASSETS["back"], timeout=5, region=REGIONS["back"]):
+                        if wait_and_click(ASSETS["confirm"], timeout=5, region=REGIONS["confirm"]):
+                            wait_and_click(ASSETS["failed"], timeout=10, region=REGIONS["fail"])
                     return
 
             # Fail-safe cho truong hop khong phai Ruong Nguyen ma portal_count > 2

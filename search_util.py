@@ -41,8 +41,8 @@ def find_image(image_path, timeout=5, confidence=DEFAULT_CONFIDENCE, region=None
             try:
                 location = pyautogui.locateOnScreen(temp_retina, confidence=confidence, region=region)
                 if location:
-                    logic_x = (location.left + location.width / 2) / scale
-                    logic_y = (location.top + location.height / 2) / scale
+                    logic_x = int((location.left + location.width / 2) / scale)
+                    logic_y = int((location.top + location.height / 2) / scale)
                     # Khong can cong them region[0] vi pyautogui.locateOnScreen tra ve toa do man hinh thuc
                     result = (logic_x, logic_y)
                     break
@@ -80,8 +80,8 @@ def find_multiple_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDEN
                 # Chuyen toa do tu screenshot ve toa do man hinh logical
                 offset_x = region[0] if region else 0
                 offset_y = region[1] if region else 0
-                logic_x = (location.left + location.width / 2) / scale + offset_x
-                logic_y = (location.top + location.height / 2) / scale + offset_y
+                logic_x = int((location.left + location.width / 2) / scale + offset_x)
+                logic_y = int((location.top + location.height / 2) / scale + offset_y)
                 return key, (logic_x, logic_y)
         except Exception as e:
             logging.debug(f"Error finding {key}: {e}")
@@ -93,6 +93,7 @@ def find_multiple_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDEN
 def find_all_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, region=None):
     """
     Tìm tất cả các assets trong priority_list đang xuất hiện trên màn hình.
+    Trả về danh sách tuple (tên_asset, location) với location là (left, top, width, height) trong hệ tọa độ màn hình thực.
     """
     screen_width, screen_height = pyautogui.size()
     s = pyautogui.screenshot(region=region)
@@ -113,7 +114,14 @@ def find_all_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, r
             
             location = pyautogui.locate(temp_retina, s, confidence=confidence)
             if location:
-                found_assets.append(key)
+                # location ở đây là tương đối so với screenshot 's'
+                # Cần chuyển về tọa độ màn hình thực tế nếu có region
+                real_left = int(location.left + (region[0] if region else 0))
+                real_top = int(location.top + (region[1] if region else 0))
+                real_width = int(location.width)
+                real_height = int(location.height)
+                real_location = (real_left, real_top, real_width, real_height)
+                found_assets.append((key, real_location))
         except Exception as e:
             logging.debug(f"Error finding {key}: {e}")
         finally:
@@ -173,8 +181,8 @@ def wait_and_click(image_path, timeout=10, confidence=DEFAULT_CONFIDENCE, double
                 location = pyautogui.locateOnScreen(temp_retina, confidence=confidence, region=region)
                 if location:
                     # Convert coordinates to logic for clicking
-                    logic_x = (location.left + location.width / 2) / scale
-                    logic_y = (location.top + location.height / 2) / scale
+                    logic_x = int((location.left + location.width / 2) / scale)
+                    logic_y = int((location.top + location.height / 2) / scale)
                     click_at(logic_x, logic_y, double=double)
                     return True
             except Exception:

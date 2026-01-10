@@ -1,7 +1,7 @@
 import logging
 import sys
 import time
-import pyautogui
+
 from search_util import find_all_assets
 
 # Logging configuration
@@ -29,10 +29,8 @@ ASSETS = {
     "lvl1_suoiTinhThan_2": "src/assets/text_lvl1_suoiTinhThan_2.png",
     "lvl1_teDanCoDai_1": "src/assets/text_lvl1_teDanCoDai_1.png",
     "lvl1_teDanCoDai_2": "src/assets/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_0": "src/assets/text_lvl2_hangOQuaiVat_0.png",
     "lvl2_hangOQuaiVat_1": "src/assets/text_lvl2_hangOQuaiVat_1.png",
     "lvl2_hangOQuaiVat_2": "src/assets/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_0": "src/assets/text_lvl3_toChinhQuaiVat_0.png",
     "lvl3_toChinhQuaiVat_1": "src/assets/text_lvl3_toChinhQuaiVat_1.png",
     "lvl3_toChinhQuaiVat_2": "src/assets/text_lvl3_toChinhQuaiVat_2.png",
     "lvl3_toChinhQuaiVat_3": "src/assets/text_lvl3_toChinhQuaiVat_3.png",
@@ -50,47 +48,77 @@ PRIORITY_LIST = [
     "lvl1_suoiTinhThan_2",
     "lvl1_teDanCoDai_1",
     "lvl1_teDanCoDai_2",
-    "lvl2_hangOQuaiVat_0",
     "lvl2_hangOQuaiVat_1",
     "lvl2_hangOQuaiVat_2",
-    "lvl3_toChinhQuaiVat_0",
     "lvl3_toChinhQuaiVat_1",
     "lvl3_toChinhQuaiVat_2",
     "lvl3_toChinhQuaiVat_3",
     "lvl3_toChinhQuaiVat_4",
     "lvl5_banDoChuaRo",
     "win",
-    "failed"
+    "failed",
+    "challenge",
+    "back",
+    "confirm",
+    "x3_click"
 ]
 
-# Global configuration for scanning region (Terminal window)
-# Format: (left, top, width, height)
-PORTAL_REGION = (40, 300, 400, 450)
+# Global configuration for scanning regions
+# Format: list of (left, top, width, height)
+PORTAL_REGIONS = [
+    (123, 343, 75, 26),  # left text
+    (277, 343, 69, 27),  # right text
+    (146, 394, 29, 29),  # left icon
+    (290, 396, 23, 26),  # righ icon
+    (76, 729, 36, 33),  # back
+    (188, 387, 90, 30),  # fail
+    (176, 722, 112, 20),  # challenge
+    (174, 339, 120, 26),  # win
+    (310, 619, 49, 33),  # x3_click
+    (85, 540, 58, 21),  # tach
+    (273, 487, 66, 24),  # all
+    (321, 537, 60, 26),  # confirm tach
+    (243, 511, 93, 34),  # confirm
+]
+
 
 def run_debug():
-    logging.info(f"Starting debug_testing (Search only region {PORTAL_REGION}, NO clicking)...")
+    logging.info(f"Starting debug_testing (Search {len(PORTAL_REGIONS)} regions, NO clicking)...")
     try:
         while True:
-            all_found = find_all_assets(ASSETS, PRIORITY_LIST, confidence=0.7, region=PORTAL_REGION)
-            if all_found:
-                # Group assets by their "portal type"
-                unique_portals = set()
-                for asset_name in all_found:
-                    base_name = asset_name
-                    if "_" in asset_name:
-                        parts = asset_name.split("_")
-                        if parts[-1].isdigit():
-                            base_name = "_".join(parts[:-1])
-                    unique_portals.add(base_name)
-                
-                logging.info(f"Found {len(unique_portals)} portal types: {', '.join(unique_portals)} (Total resources: {len(all_found)})")
-                logging.debug(f"Resources: {', '.join(all_found)}")
-            elif len(all_found) > 0: # Only log if something was found (e.g. click_and_close or failed which are ignored in unique_portals)
-                 logging.info(f"Found {len(all_found)} assets but 0 portal types.")
-            
+            all_results = []
+            for i, region in enumerate(PORTAL_REGIONS):
+                all_found_raw = find_all_assets(ASSETS, PRIORITY_LIST, confidence=0.7, region=region)
+                all_found = [name for name, loc in all_found_raw]
+                logging.info(f"Region {i + 1}: Found {len(all_found)} assets.")
+                if all_found:
+                    # Group assets by their "portal type"
+                    unique_portals = set()
+                    for asset_name in all_found:
+                        base_name = asset_name
+                        if "_" in asset_name:
+                            parts = asset_name.split("_")
+                            if parts[-1].isdigit():
+                                base_name = "_".join(parts[:-1])
+                        unique_portals.add(base_name)
+
+                    all_results.append({
+                        "index": i + 1,
+                        "region": region,
+                        "portals": list(unique_portals),
+                        "count": len(all_found)
+                    })
+
+            if all_results:
+                logging.info(f"--- Scan results ({len(all_results)} regions with findings) ---")
+                for res in all_results:
+                    logging.info(
+                        f"Region {res['index']} {res['region']}: Found {len(res['portals'])} portal types: {', '.join(res['portals'])} (Total: {res['count']})")
+
             time.sleep(2)
     except KeyboardInterrupt:
         logging.info("Debug stopped by user.")
+
 
 if __name__ == "__main__":
     run_debug()
