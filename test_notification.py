@@ -12,7 +12,13 @@ def load_telegram_config():
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 config = json.load(f)
-                return config.get("telegram_token", ""), str(config.get("telegram_chat_id", ""))
+                token = config.get("telegram_token", "")
+                chat_id = str(config.get("telegram_chat_id", ""))
+                
+                # Check for placeholders
+                if token in ["", "xx", "your_token_here"] or chat_id in ["", "yy", "your_chat_id_here"]:
+                    return "", ""
+                return token, chat_id
         except Exception as e:
             print(f"Error loading {CONFIG_FILE}: {e}")
     return "", ""

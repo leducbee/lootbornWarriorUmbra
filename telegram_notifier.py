@@ -41,15 +41,22 @@ if __name__ == "__main__":
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 config = json.load(f)
-                TOKEN = config.get("telegram_token", TOKEN)
-                CHAT_ID = str(config.get("telegram_chat_id", CHAT_ID))
+                token = config.get("telegram_token", TOKEN)
+                chat_id = str(config.get("telegram_chat_id", CHAT_ID))
+                
+                if token in ["", "xx", "your_token_here"] or chat_id in ["", "yy", "your_chat_id_here"]:
+                    TOKEN = ""
+                    CHAT_ID = ""
+                else:
+                    TOKEN = token
+                    CHAT_ID = chat_id
         except Exception:
             pass
 
     MESSAGE = "Test notification từ Auto Script!"
     
     # Chạy thử
-    if TOKEN != "xx" and TOKEN != "your_token_here":
+    if TOKEN and CHAT_ID:
         asyncio.run(send_telegram_message(TOKEN, CHAT_ID, MESSAGE))
     else:
-        print("Vui lòng thiết lập TOKEN và CHAT_ID trong file config.json.")
+        print("Vui lòng thiết lập TOKEN và CHAT_ID hợp lệ trong file config.json.")
