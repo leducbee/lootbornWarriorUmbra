@@ -61,9 +61,18 @@ def find_image(image_path, timeout=5, confidence=DEFAULT_CONFIDENCE, region=None
             try:
                 location = pyautogui.locateOnScreen(temp_retina, confidence=confidence, region=region)
                 if location:
-                    logic_x = int((location.left + location.width / 2) / scale)
-                    logic_y = int((location.top + location.height / 2) / scale)
-                    # Khong can cong them region[0] vi pyautogui.locateOnScreen tra ve toa do man hinh thuc
+                    # Chuyển đổi về tọa độ logical
+                    logic_x = int(location.left + location.width / 2)
+                    logic_y = int(location.top + location.height / 2)
+                    
+                    # Nếu trên macOS và pyautogui trả về pixel thực tế (tùy version), 
+                    # chúng ta có thể cần chia cho scale. 
+                    # Nhưng với test vừa rồi, nó trả về 200 cho vị trí 200 physical pixels.
+                    # Trên 1440x900, pixel 200 physical là pixel 100 logical.
+                    
+                    logic_x = int(logic_x / scale)
+                    logic_y = int(logic_y / scale)
+
                     result = (logic_x, logic_y)
                     break
             except Exception:
@@ -119,6 +128,7 @@ def find_all_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, r
     
     found_assets = []
     
+    # Pre-capture screen to search on a static image
     for key in priority_list:
         image_path = assets_dict.get(key)
         if not image_path or not os.path.exists(image_path):
@@ -132,14 +142,27 @@ def find_all_assets(assets_dict, priority_list, confidence=DEFAULT_CONFIDENCE, r
             
             location = pyautogui.locate(temp_retina, s, confidence=confidence)
             if location:
-                # location ở đây là tương đối so với screenshot 's'
+                # location ở đây là tương đối so với screenshot 's' (pixel thực tế)
                 # Cần chuyển về tọa độ màn hình logical (chia cho scale)
+                
+                # Logic x, y của region luôn là logical
                 offset_x = region[0] if region else 0
                 offset_y = region[1] if region else 0
-                real_left = int(location.left / scale + offset_x)
-                real_top = int(location.top / scale + offset_y)
-                real_width = int(location.width / scale)
-                real_height = int(location.height / scale)
+                
+                # Chuyển pixel thực tế của location về logical
+                logic_left = location.left / scale
+                logic_top = location.top / scale
+                logic_width = location.width / scale
+                logic_height = location.height / scale
+                
+                real_left = int(logic_left + offset_x)
+                real_top = int(logic_top + offset_y)
+                real_width = int(logic_width)
+                real_height = int(logic_height)
+                
+                # Log to verify generic logic
+                logging.debug(f"Found {key} at physical ({location.left}, {location.top}), logical ({real_left}, {real_top}) with scale {scale}")
+                
                 real_location = (real_left, real_top, real_width, real_height)
                 found_assets.append((key, real_location))
         except Exception as e:
@@ -195,9 +218,15 @@ def wait_and_click(image_path, timeout=10, confidence=DEFAULT_CONFIDENCE, double
             try:
                 location = pyautogui.locateOnScreen(temp_retina, confidence=confidence, region=region)
                 if location:
-                    # Convert coordinates to logic for clicking
-                    logic_x = int((location.left + location.width / 2) / scale)
-                    logic_y = int((location.top + location.height / 2) / scale)
+                    # Chuyển đổi về tọa độ logical
+                    logic_x = int(location.left + location.width / 2)
+                    logic_y = int(location.top + location.height / 2)
+                    
+                    # Trên macOS Retina, locateOnScreen có thể trả về pixel thực tế. 
+                    # Chia cho scale để đưa về tọa độ logical cho việc click.
+                    logic_x = int(logic_x / scale)
+                    logic_y = int(logic_y / scale)
+
                     click_at(logic_x, logic_y, double=double)
                     return True
             except Exception:

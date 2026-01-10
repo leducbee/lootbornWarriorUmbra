@@ -13,11 +13,19 @@ else:
 
 def run_scan_and_collect():
     logging.info(f"Starting Scan & Collect (Base: {BASE_PATH})...")
-    from scan_and_collect import scan_logic
+    from scan_and_collect import scan_logic, start_clipboard_listener
     from hud_util import HUD
     
     # Khởi tạo HUD (Cần chạy trên main thread cho macOS/PyQt5)
     hud = HUD()
+    
+    # Thư mục scanning để lưu ảnh clipboard
+    scanning_dir = os.path.join(BASE_PATH, "src", "assets", "scanning")
+    os.makedirs(scanning_dir, exist_ok=True)
+
+    # Chạy listener bàn phím trong thread riêng
+    listener_thread = threading.Thread(target=start_clipboard_listener, args=(scanning_dir,), daemon=True)
+    listener_thread.start()
     
     # Chạy vòng lặp quét trong một thread riêng để không block UI của HUD
     scanner_thread = threading.Thread(target=scan_logic, args=(hud, BASE_PATH), daemon=True)

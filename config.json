@@ -1,4 +1,5 @@
 {
+  "telegram_token": "xx",
   "telegram_chat_id": "yy",
   "max_run": 2,
   "assets_dir": "src/assets/working/"
