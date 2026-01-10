@@ -240,8 +240,8 @@ def run_debug_dynamic():
     # Logic quét đưa vào thread
     def scan_loop():
         # 3. Limited scan region
-        # limited_region = (40, 300, 400, 460)
-        limited_region = None
+        limited_region = (40, 300, 400, 460)
+        # limited_region = None
 
         current_detected_map = {}  # Dùng dict để lưu trữ theo tên asset hoặc vị trí để tránh duplicate
 

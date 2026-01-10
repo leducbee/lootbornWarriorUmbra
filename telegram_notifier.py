@@ -29,13 +29,27 @@ async def send_telegram_photo(token, chat_id, photo_path, caption=None):
         return False
 
 if __name__ == "__main__":
-    # Đây là mẫu, người dùng cần điền thông tin thật vào
+    import os
+    import json
+    
+    # Thử load từ config.json
     TOKEN = "xx"
     CHAT_ID = "xx"
+    CONFIG_FILE = "config.json"
+    
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                TOKEN = config.get("telegram_token", TOKEN)
+                CHAT_ID = str(config.get("telegram_chat_id", CHAT_ID))
+        except Exception:
+            pass
+
     MESSAGE = "Test notification từ Auto Script!"
     
     # Chạy thử
-    if TOKEN == "xx": # Đã cập nhật token thật
+    if TOKEN != "xx" and TOKEN != "your_token_here":
         asyncio.run(send_telegram_message(TOKEN, CHAT_ID, MESSAGE))
     else:
-        print("Vui lòng thiết lập TOKEN và CHAT_ID trong file này hoặc file cấu hình.")
+        print("Vui lòng thiết lập TOKEN và CHAT_ID trong file config.json.")

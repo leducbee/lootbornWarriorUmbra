@@ -1,20 +1,32 @@
 import asyncio
+import json
 import logging
 import os
 import sys
 import time
+from enum import Enum
 
-from enum import Enum, auto
 from pynput import keyboard
 from telegram import Bot
 
-from search_util import wait_and_click, click_at, find_multiple_assets, find_all_assets
-from telegram_notifier import send_telegram_message, send_telegram_photo
 from capture_util import capture_region
+from search_util import click_at, find_multiple_assets, find_all_assets
+from telegram_notifier import send_telegram_message, send_telegram_photo
 
 # Telegram Config
-TELEGRAM_TOKEN = "xx"
-TELEGRAM_CHAT_ID = "yy"
+CONFIG_FILE = "config.json"
+
+def load_telegram_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                return config.get("telegram_token", ""), str(config.get("telegram_chat_id", ""))
+        except Exception as e:
+            logging.error(f"Error loading {CONFIG_FILE} for Telegram: {e}")
+    return "", ""
+
+TELEGRAM_TOKEN, TELEGRAM_CHAT_ID = load_telegram_config()
 
 # Logging configuration
 logging.basicConfig(
@@ -29,36 +41,38 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
-ASSETS = {
-    "challenge": "src/assets/working/challenge.png",
-    "back_fighting": "src/assets/working/back.png",
-    "back_challenge": "src/assets/working/back.png",
-    "back_umbra": "src/assets/working/back.png",
-    "confirm": "src/assets/working/confirm.png",
-    "failed": "src/assets/working/failed.png",
-    "win": "src/assets/working/win.png",
-    "x3_click": "src/assets/working/x3_click.png",
-    "to_umbra": "src/assets/working/to_umbra.png",
-    "tach": "src/assets/working/tach.png",
-    "tach_all": "src/assets/working/tach_all.png",
-    "tach_confirm": "src/assets/working/tach_confirm.png",
-    "lvl3_ruongNguyen_1": "src/assets/working/text_lvl3_ruongNguyen_1.png",
-    "lvl3_ruongNguyen_2": "src/assets/working/text_lvl3_ruongNguyen_2.png",
-    "lvl1_boLacQuaiVat_1": "src/assets/working/text_lvl1_boLacQuaiVat_1.png",
-    "lvl1_boLacQuaiVat_2": "src/assets/working/text_lvl1_boLacQuaiVat_2.png",
-    "lvl1_suoiSinhMenh": "src/assets/working/text_lvl1_suoiSinhMenh.png",
-    "lvl1_suoiTinhThan_1": "src/assets/working/text_lvl1_suoiTinhThan_1.png",
-    "lvl1_suoiTinhThan_2": "src/assets/working/text_lvl1_suoiTinhThan_2.png",
-    "lvl1_teDanCoDai_1": "src/assets/working/text_lvl1_teDanCoDai_1.png",
-    "lvl1_teDanCoDai_2": "src/assets/working/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_1": "src/assets/working/text_lvl2_hangOQuaiVat_1.png",
-    "lvl2_hangOQuaiVat_2": "src/assets/working/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_1": "src/assets/working/text_lvl3_toChinhQuaiVat_1.png",
-    "lvl3_toChinhQuaiVat_2": "src/assets/working/text_lvl3_toChinhQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_3": "src/assets/working/text_lvl3_toChinhQuaiVat_3.png",
-    "lvl3_toChinhQuaiVat_4": "src/assets/working/text_lvl3_toChinhQuaiVat_4.png",
-    "lvl5_banDoChuaRo": "src/assets/working/text_lvl5_banDoChuaRo.png"
+ASSETS_MAPPING = {
+    "challenge": "challenge.png",
+    "back_fighting": "back.png",
+    "back_challenge": "back.png",
+    "back_umbra": "back.png",
+    "confirm": "confirm.png",
+    "failed": "failed.png",
+    "win": "win.png",
+    "x3_click": "x3_click.png",
+    "to_umbra": "to_umbra.png",
+    "tach": "tach.png",
+    "tach_all": "tach_all.png",
+    "tach_confirm": "tach_confirm.png",
+    "lvl3_ruongNguyen_1": "text_lvl3_ruongNguyen_1.png",
+    "lvl3_ruongNguyen_2": "text_lvl3_ruongNguyen_2.png",
+    "lvl1_boLacQuaiVat_1": "text_lvl1_boLacQuaiVat_1.png",
+    "lvl1_boLacQuaiVat_2": "text_lvl1_boLacQuaiVat_2.png",
+    "lvl1_suoiSinhMenh": "text_lvl1_suoiSinhMenh.png",
+    "lvl1_suoiTinhThan_1": "text_lvl1_suoiTinhThan_1.png",
+    "lvl1_suoiTinhThan_2": "text_lvl1_suoiTinhThan_2.png",
+    "lvl1_teDanCoDai_1": "text_lvl1_teDanCoDai_1.png",
+    "lvl1_teDanCoDai_2": "text_lvl1_teDanCoDai_2.png",
+    "lvl2_hangOQuaiVat_1": "text_lvl2_hangOQuaiVat_1.png",
+    "lvl2_hangOQuaiVat_2": "text_lvl2_hangOQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_1": "text_lvl3_toChinhQuaiVat_1.png",
+    "lvl3_toChinhQuaiVat_2": "text_lvl3_toChinhQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_3": "text_lvl3_toChinhQuaiVat_3.png",
+    "lvl3_toChinhQuaiVat_4": "text_lvl3_toChinhQuaiVat_4.png",
+    "lvl5_banDoChuaRo": "text_lvl5_banDoChuaRo.png"
 }
+
+ASSETS = {} # Will be populated based on assets_dir from config
 
 PRIORITY_LIST = [
     "lvl3_ruongNguyen_1",
@@ -176,34 +190,49 @@ class AutoScriptApplication:
 
     def load_config(self):
         """
-        Load configuration from auto_script_config.txt
+        Load configuration from config.json
         """
-        file_path = "auto_script_config.txt"
-        if not os.path.exists(file_path):
-            logging.warning(f"File {file_path} not found. Using default MAX_RUN=0")
+        if not os.path.exists(CONFIG_FILE):
+            logging.warning(f"File {CONFIG_FILE} not found. Using default values")
+            self._update_assets_paths("src/assets/working/")
             return
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or "=" not in line:
-                        continue
-                    key, value = line.split("=", 1)
-                    if key.strip() == "MAX_RUN":
-                        self.max_run = int(value.strip())
-            logging.info(f"Loaded config: MAX_RUN = {self.max_run}")
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+                self.max_run = config_data.get("max_run", 0)
+                assets_dir = config_data.get("assets_dir", "src/assets/working/")
+                self._update_assets_paths(assets_dir)
+            logging.info(f"Loaded config: MAX_RUN = {self.max_run}, ASSETS_DIR = {assets_dir}")
         except Exception as e:
             logging.error(f"Error loading config: {e}")
+            self._update_assets_paths("src/assets/working/")
+
+    def _update_assets_paths(self, assets_dir):
+        """
+        Update the global ASSETS dictionary with the given directory
+        """
+        global ASSETS
+        ASSETS.clear()
+        for key, filename in ASSETS_MAPPING.items():
+            ASSETS[key] = os.path.join(assets_dir, filename)
 
     def save_config(self):
         """
-        Save configuration to auto_script_config.txt
+        Save configuration to config.json
         """
-        file_path = "auto_script_config.txt"
         try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(f"MAX_RUN = {self.max_run}\n")
+            config_data = {}
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+            
+            config_data["max_run"] = self.max_run
+            # assets_dir is typically changed manually in the config file, 
+            # but we can preserve it if it exists.
+            
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=2)
             logging.info(f"Saved config: MAX_RUN = {self.max_run}")
         except Exception as e:
             logging.error(f"Error saving config: {e}")
@@ -390,8 +419,7 @@ class AutoScriptApplication:
                 self.max_run -= 1
                 self.save_config()
                 if self.max_run <= 0:
-                    logging.info("MAX_RUN reached 0. Stopping application...")
-                    self.running = False
+                    logging.info("MAX_RUN reached 0. Application will stop after this run.")
                 
                 click_at(pos[0], pos[1])  # Click portal chứa rương
                 time.sleep(2)
@@ -443,6 +471,12 @@ class AutoScriptApplication:
         self.current_flow = FlowStatus.NONE
         self.found_treasure = False  # Reset flag
         self.portal_count = 0  # Reset wave count
+
+        if self.max_run <= 0:
+            logging.info("Stopping application as planned after finishing the run.")
+            self.running = False
+            return
+
         for key in ("x3_click", "failed"):
             if key in scan_results:
                 click_scan_result(scan_results, key)

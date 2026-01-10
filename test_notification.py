@@ -3,10 +3,21 @@ from telegram_notifier import send_telegram_message, send_telegram_photo
 from telegram import Bot
 import pyautogui
 import os
+import json
 
-# Telegram Config
-TELEGRAM_TOKEN = "xx"
-TELEGRAM_CHAT_ID = "xx"
+# Load Telegram Config
+CONFIG_FILE = "config.json"
+def load_telegram_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                return config.get("telegram_token", ""), str(config.get("telegram_chat_id", ""))
+        except Exception as e:
+            print(f"Error loading {CONFIG_FILE}: {e}")
+    return "", ""
+
+TELEGRAM_TOKEN, TELEGRAM_CHAT_ID = load_telegram_config()
 
 async def main_loop():
     title = "Auto Script Notification"
