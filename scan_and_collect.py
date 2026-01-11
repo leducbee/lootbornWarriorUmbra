@@ -115,11 +115,23 @@ def scan_logic(hud, base_path=None):
     if scan_region:
         logging.info(f"📍 Displaying SCAN_AREA HUD: {scan_region}")
         hud.update_regions([("SCAN_AREA", scan_region)], padding=5)
-    assets_paths = {}
-    for name, filename in ASSETS_MAPPING.items():
-        assets_paths[name] = os.path.join(scanning_dir, filename)
     logging.info(f"Scanner logic started with region {scan_region}. Waiting for assets in '{scanning_dir}'...")
     while True:
+        assets_paths = {}
+        missing_assets = []
+        for name, filename in ASSETS_MAPPING.items():
+            path = os.path.join(scanning_dir, filename)
+            assets_paths[name] = path
+            if not os.path.exists(path):
+                missing_assets.append(f"{name} ({filename})")
+
+        if missing_assets:
+            logging.warning(f"⚠️ Missing assets in '{scanning_dir}':")
+            for missing in missing_assets:
+                logging.warning(f"  - {missing}")
+        else:
+            logging.info("✅ All assets are now present.")
+
         scan_targets = {name: path for name, path in assets_paths.items() if os.path.exists(path)}
         found_on_screen = []
         if scan_targets:
