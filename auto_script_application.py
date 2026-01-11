@@ -250,7 +250,7 @@ class AutoScriptApplication:
     def load_config(self):
         if not os.path.exists(self.config_file):
             logging.warning(f"File {self.config_file} not found. Using default values")
-            self._update_assets_paths(os.path.join(self.base_path, "src/assets/working/"))
+            self._update_assets_paths(os.path.join(self.base_path, "src/assets/scanning/"))
             return
 
         try:
@@ -258,7 +258,7 @@ class AutoScriptApplication:
                 config_data = json.load(f)
                 self.max_run = config_data.get("max_run", 0)
                 self.scan_region = config_data.get("scan_region")
-                assets_dir_relative = config_data.get("assets_dir", "src/assets/working/")
+                assets_dir_relative = config_data.get("assets_dir", "src/assets/scanning/")
                 
                 if not os.path.isabs(assets_dir_relative):
                     assets_dir = os.path.join(self.base_path, assets_dir_relative)
@@ -270,7 +270,7 @@ class AutoScriptApplication:
             logging.info(f"Loaded config: MAX_RUN = {self.max_run}, ASSETS_DIR = {assets_dir}, SCAN_REGION = {self.scan_region}")
         except Exception as e:
             logging.error(f"Error loading config: {e}")
-            self._update_assets_paths(os.path.join(self.base_path, "src/assets/working/"))
+            self._update_assets_paths(os.path.join(self.base_path, "src/assets/scanning/"))
 
     def _update_assets_paths(self, assets_dir):
         global ASSETS
@@ -456,7 +456,7 @@ class AutoScriptApplication:
                 msg = f"💎 Treasure found! (run {self.route_count})"
                 import pyautogui
                 sw, sh = pyautogui.size()
-                photo_path = f"src/assets/working/treasure.png"
+                photo_path = f"src/assets/scanning/treasure.png"
                 capture_region(0, 0, sw, sh, save_path=photo_path)
 
                 asyncio.run(send_telegram_photo(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, photo_path, caption=msg))

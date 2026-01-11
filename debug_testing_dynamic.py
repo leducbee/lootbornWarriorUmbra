@@ -14,36 +14,35 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
-CONFIG_FILE = "found_coordinate_scanning.txt" 
 ASSETS = {
-    "challenge": "src/assets/backup/challenge.png",
-    "back_fighting": "src/assets/backup/back.png",
-    "back_challenge": "src/assets/backup/back.png",
-    "back_umbra": "src/assets/backup/back.png",
-    "confirm": "src/assets/backup/confirm.png",
-    "failed": "src/assets/backup/failed.png",
-    "win": "src/assets/backup/win.png",
-    "x3_click": "src/assets/backup/x3_click.png",
-    "to_umbra": "src/assets/backup/to_umbra.png",
-    "tach": "src/assets/backup/tach.png",
-    "tach_all": "src/assets/backup/tach_all.png",
-    "tach_confirm": "src/assets/backup/tach_confirm.png",
-    "lvl3_ruongNguyen_1": "src/assets/backup/text_lvl3_ruongNguyen_1.png",
-    "lvl3_ruongNguyen_2": "src/assets/backup/text_lvl3_ruongNguyen_2.png",
-    "lvl1_boLacQuaiVat_1": "src/assets/backup/text_lvl1_boLacQuaiVat_1.png",
-    "lvl1_boLacQuaiVat_2": "src/assets/backup/text_lvl1_boLacQuaiVat_2.png",
-    "lvl1_suoiSinhMenh": "src/assets/backup/text_lvl1_suoiSinhMenh.png",
-    "lvl1_suoiTinhThan_1": "src/assets/backup/text_lvl1_suoiTinhThan_1.png",
-    "lvl1_suoiTinhThan_2": "src/assets/backup/text_lvl1_suoiTinhThan_2.png",
-    "lvl1_teDanCoDai_1": "src/assets/backup/text_lvl1_teDanCoDai_1.png",
-    "lvl1_teDanCoDai_2": "src/assets/backup/text_lvl1_teDanCoDai_2.png",
-    "lvl2_hangOQuaiVat_1": "src/assets/backup/text_lvl2_hangOQuaiVat_1.png",
-    "lvl2_hangOQuaiVat_2": "src/assets/backup/text_lvl2_hangOQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_1": "src/assets/backup/text_lvl3_toChinhQuaiVat_1.png",
-    "lvl3_toChinhQuaiVat_2": "src/assets/backup/text_lvl3_toChinhQuaiVat_2.png",
-    "lvl3_toChinhQuaiVat_3": "src/assets/backup/text_lvl3_toChinhQuaiVat_3.png",
-    "lvl3_toChinhQuaiVat_4": "src/assets/backup/text_lvl3_toChinhQuaiVat_4.png",
-    "lvl5_banDoChuaRo": "src/assets/backup/text_lvl5_banDoChuaRo.png"
+    "challenge": "src/assets/scanning/challenge.png",
+    "back_fighting": "src/assets/scanning/back.png",
+    "back_challenge": "src/assets/scanning/back.png",
+    "back_umbra": "src/assets/scanning/back.png",
+    "confirm": "src/assets/scanning/confirm.png",
+    "failed": "src/assets/scanning/failed.png",
+    "win": "src/assets/scanning/win.png",
+    "x3_click": "src/assets/scanning/x3_click.png",
+    "to_umbra": "src/assets/scanning/to_umbra.png",
+    "tach": "src/assets/scanning/tach.png",
+    "tach_all": "src/assets/scanning/tach_all.png",
+    "tach_confirm": "src/assets/scanning/tach_confirm.png",
+    "lvl3_ruongNguyen_1": "src/assets/scanning/text_lvl3_ruongNguyen_1.png",
+    "lvl3_ruongNguyen_2": "src/assets/scanning/text_lvl3_ruongNguyen_2.png",
+    "lvl1_boLacQuaiVat_1": "src/assets/scanning/text_lvl1_boLacQuaiVat_1.png",
+    "lvl1_boLacQuaiVat_2": "src/assets/scanning/text_lvl1_boLacQuaiVat_2.png",
+    "lvl1_suoiSinhMenh": "src/assets/scanning/text_lvl1_suoiSinhMenh.png",
+    "lvl1_suoiTinhThan_1": "src/assets/scanning/text_lvl1_suoiTinhThan_1.png",
+    "lvl1_suoiTinhThan_2": "src/assets/scanning/text_lvl1_suoiTinhThan_2.png",
+    "lvl1_teDanCoDai_1": "src/assets/scanning/text_lvl1_teDanCoDai_1.png",
+    "lvl1_teDanCoDai_2": "src/assets/scanning/text_lvl1_teDanCoDai_2.png",
+    "lvl2_hangOQuaiVat_1": "src/assets/scanning/text_lvl2_hangOQuaiVat_1.png",
+    "lvl2_hangOQuaiVat_2": "src/assets/scanning/text_lvl2_hangOQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_1": "src/assets/scanning/text_lvl3_toChinhQuaiVat_1.png",
+    "lvl3_toChinhQuaiVat_2": "src/assets/scanning/text_lvl3_toChinhQuaiVat_2.png",
+    "lvl3_toChinhQuaiVat_3": "src/assets/scanning/text_lvl3_toChinhQuaiVat_3.png",
+    "lvl3_toChinhQuaiVat_4": "src/assets/scanning/text_lvl3_toChinhQuaiVat_4.png",
+    "lvl5_banDoChuaRo": "src/assets/scanning/text_lvl5_banDoChuaRo.png"
 }
 PRIORITY_LIST = [
     "lvl3_ruongNguyen_1",
@@ -76,37 +75,9 @@ PRIORITY_LIST = [
     "tach_confirm",
 ]
 known_regions = []
-def load_regions():
-    regions = []
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or ":" not in line:
-                        continue
-                    name, coords_str = line.split(":", 1)
-                    coords = tuple(map(int, coords_str.strip().strip("()").split(",")))
-                    if not name.startswith("lvl"):
-                        regions.append((name.strip(), coords))
-            regions.sort(key=lambda x: PRIORITY_LIST.index(x[0]) if x[0] in PRIORITY_LIST else len(PRIORITY_LIST))
-            logging.info(f"Loaded {len(regions)} regions from {CONFIG_FILE}")
-        except Exception as e:
-            logging.error(f"Error loading {CONFIG_FILE}: {e}")
-    return regions
-def save_regions(regions):
-    try:
-        sorted_regions = sorted(regions, key=lambda x: PRIORITY_LIST.index(x[0]) if x[0] in PRIORITY_LIST else len(
-            PRIORITY_LIST))
-        with open(CONFIG_FILE, "w") as f:
-            for name, coords in sorted_regions:
-                f.write(f"{name}: {coords}\n")
-    except Exception as e:
-        logging.error(f"Error saving {CONFIG_FILE}: {e}")
 def run_debug_dynamic():
     logging.info("Starting debug_testing_dynamic...")
     global known_regions
-    known_regions = load_regions()
     hud = HUD()
     # Logic quét đưa vào thread
     def scan_loop():
@@ -150,10 +121,10 @@ def run_debug_dynamic():
                             known_regions.sort(
                                 key=lambda x: PRIORITY_LIST.index(x[0]) if x[0] in PRIORITY_LIST else len(
                                     PRIORITY_LIST))
-                            save_regions(known_regions)
+                            # save_regions(known_regions)
                         elif known_regions[found_idx][1] != loc:
                             known_regions[found_idx] = (asset_name, loc)
-                            save_regions(known_regions)
+                            # save_regions(known_regions)
                 else:
                     all_results = []
                 # Cập nhật HUD: Vẽ tất cả các item đang có trong map
