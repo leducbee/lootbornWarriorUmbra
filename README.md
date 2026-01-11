@@ -71,7 +71,9 @@ pip install pyautogui opencv-python numpy pillow pynput python-telegram-bot
 ---
 
 ### 📺 Video hướng dẫn
-*   **Link tham khảo:** [Đang cập nhật video YouTube]
+1. **Download, setup scanning coordinate:** [Xem video](https://youtu.be/_GB_4td789k)
+2. **Create needed asset & verify:** [Xem video](https://youtu.be/ACxUqflavfM)
+3. **Run demo auto:** [Xem video](https://youtu.be/TvBuVlqFA2w)
 
 ---
 
