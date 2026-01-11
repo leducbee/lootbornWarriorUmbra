@@ -38,8 +38,7 @@ pip install pyautogui opencv-python numpy pillow pynput python-telegram-bot
 ```
 
 #### 3. Cấu hình
-*   Chỉnh sửa file `config.json` để thiết lập `telegram_token` và `telegram_chat_id`.
-*   Tọa độ các vùng nhận diện được cấu hình trong `initial_coordinates.txt`.
+*   Chỉnh sửa file `config.json` để thiết lập `telegram_token`, `telegram_chat_id` và `scan_region`.
 
 ---
 

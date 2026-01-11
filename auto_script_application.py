@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 from enum import Enum
 
@@ -12,6 +13,7 @@ from telegram import Bot
 from capture_util import capture_region
 from search_util import click_at, find_multiple_assets, find_all_assets
 from telegram_notifier import send_telegram_message, send_telegram_photo
+from hud_util import HUD
 
 # Telegram Config
 CONFIG_FILE = "config.json"
@@ -34,7 +36,6 @@ def load_telegram_config():
 
 TELEGRAM_TOKEN, TELEGRAM_CHAT_ID = load_telegram_config()
 
-# Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -43,7 +44,6 @@ logging.basicConfig(
     ]
 )
 
-# Suppress verbose HTTP logs
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
@@ -78,7 +78,7 @@ ASSETS_MAPPING = {
     "lvl5_banDoChuaRo": "text_lvl5_banDoChuaRo.png"
 }
 
-ASSETS = {} # Will be populated based on assets_dir from config
+ASSETS = {}
 
 PRIORITY_LIST = [
     "lvl3_ruongNguyen_1",
@@ -131,8 +131,26 @@ class ScanResult:
 
 
 FLOW_REGIONS = {
-    FlowStatus.FIGHTING: ["to_umbra", "challenge", "left_portal_text", "right_portal_text", "win", "failed"],
-    FlowStatus.AWAIT_FIGHTING_DONE: ["left_portal_text", "right_portal_text", "win", "failed"],
+    FlowStatus.FIGHTING: [
+        "to_umbra", "challenge", "win", "failed",
+        "lvl3_ruongNguyen_1", "lvl3_ruongNguyen_2",
+        "lvl1_boLacQuaiVat_1", "lvl1_boLacQuaiVat_2",
+        "lvl1_suoiSinhMenh", "lvl1_suoiTinhThan_1", "lvl1_suoiTinhThan_2",
+        "lvl1_teDanCoDai_1", "lvl1_teDanCoDai_2",
+        "lvl2_hangOQuaiVat_1", "lvl2_hangOQuaiVat_2",
+        "lvl3_toChinhQuaiVat_1", "lvl3_toChinhQuaiVat_2", "lvl3_toChinhQuaiVat_3", "lvl3_toChinhQuaiVat_4",
+        "lvl5_banDoChuaRo"
+    ],
+    FlowStatus.AWAIT_FIGHTING_DONE: [
+        "win", "failed",
+        "lvl3_ruongNguyen_1", "lvl3_ruongNguyen_2",
+        "lvl1_boLacQuaiVat_1", "lvl1_boLacQuaiVat_2",
+        "lvl1_suoiSinhMenh", "lvl1_suoiTinhThan_1", "lvl1_suoiTinhThan_2",
+        "lvl1_teDanCoDai_1", "lvl1_teDanCoDai_2",
+        "lvl2_hangOQuaiVat_1", "lvl2_hangOQuaiVat_2",
+        "lvl3_toChinhQuaiVat_1", "lvl3_toChinhQuaiVat_2", "lvl3_toChinhQuaiVat_3", "lvl3_toChinhQuaiVat_4",
+        "lvl5_banDoChuaRo"
+    ],
     FlowStatus.DONE: ["failed", "x3_click"],
     FlowStatus.RESET: ["back_fighting", "failed", "confirm"],
     FlowStatus.REFINE: ["tach", "tach_all", "tach_confirm", "back_umbra"]
@@ -146,8 +164,12 @@ def determine_flow(scan_results):
         return FlowStatus.DONE
     if "challenge" in scan_results:
         return FlowStatus.FIGHTING
-    if "left_portal_text" in scan_results or "right_portal_text" in scan_results:
-        return FlowStatus.FIGHTING
+    
+    # Check for lvlxx_yy_zz pattern
+    for key in scan_results:
+        if key.startswith("lvl"):
+            return FlowStatus.FIGHTING
+            
     return FlowStatus.UNKNOWN
 
 
@@ -160,7 +182,7 @@ def click_scan_result(scan_results, key):
 
 
 class AutoScriptApplication:
-    def __init__(self, base_path=None):
+    def __init__(self, base_path=None, hud=None):
         if base_path is None:
             if getattr(sys, 'frozen', False):
                 self.base_path = os.path.dirname(sys.executable)
@@ -170,7 +192,6 @@ class AutoScriptApplication:
             self.base_path = base_path
 
         self.config_file = os.path.join(self.base_path, "config.json")
-        self.coords_file = os.path.join(self.base_path, "initial_coordinates.txt")
 
         self.running = True
         self.paused = False
@@ -181,11 +202,13 @@ class AutoScriptApplication:
         self.found_treasure = False
         self.portal_count = 0
         self.current_flow = FlowStatus.NONE
-        self.regions = {}
-        self.load_initial_coordinates()
         self.sleep_time = 3
         self.unscreen_count = 0
         self.max_run = 0
+        self.scan_region = None
+        from search_util import set_hud
+        self.hud = hud if hud else HUD()
+        set_hud(self.hud)
         self.load_config()
 
         # Init Telegram
@@ -225,9 +248,6 @@ class AutoScriptApplication:
         return "", ""
 
     def load_config(self):
-        """
-        Load configuration from config.json
-        """
         if not os.path.exists(self.config_file):
             logging.warning(f"File {self.config_file} not found. Using default values")
             self._update_assets_paths(os.path.join(self.base_path, "src/assets/working/"))
@@ -237,33 +257,34 @@ class AutoScriptApplication:
             with open(self.config_file, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
                 self.max_run = config_data.get("max_run", 0)
+                self.scan_region = config_data.get("scan_region")
                 assets_dir_relative = config_data.get("assets_dir", "src/assets/working/")
                 
-                # Nếu assets_dir là tương đối, nối nó với base_path
                 if not os.path.isabs(assets_dir_relative):
                     assets_dir = os.path.join(self.base_path, assets_dir_relative)
                 else:
                     assets_dir = assets_dir_relative
                 
                 self._update_assets_paths(assets_dir)
-            logging.info(f"Loaded config: MAX_RUN = {self.max_run}, ASSETS_DIR = {assets_dir}")
+                self.update_hud()
+            logging.info(f"Loaded config: MAX_RUN = {self.max_run}, ASSETS_DIR = {assets_dir}, SCAN_REGION = {self.scan_region}")
         except Exception as e:
             logging.error(f"Error loading config: {e}")
             self._update_assets_paths(os.path.join(self.base_path, "src/assets/working/"))
 
     def _update_assets_paths(self, assets_dir):
-        """
-        Update the global ASSETS dictionary with the given directory
-        """
         global ASSETS
         ASSETS.clear()
         for key, filename in ASSETS_MAPPING.items():
             ASSETS[key] = os.path.join(assets_dir, filename)
 
+    def update_hud(self):
+        if self.scan_region and len(self.scan_region) == 4:
+            self.hud.update_regions([("SCAN_AREA", tuple(self.scan_region))], padding=5)
+        else:
+            self.hud.update_regions([])
+
     def save_config(self):
-        """
-        Save configuration to config.json
-        """
         try:
             config_data = {}
             if os.path.exists(self.config_file):
@@ -278,32 +299,6 @@ class AutoScriptApplication:
         except Exception as e:
             logging.error(f"Error saving config: {e}")
 
-    def load_initial_coordinates(self):
-        """
-        Load initial coordinates from initial_coordinates.txt
-        Format: name: (x, y, w, h)
-        """
-        if not os.path.exists(self.coords_file):
-            logging.error(f"File {self.coords_file} not found.")
-            return
-
-        try:
-            with open(self.coords_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or ":" not in line:
-                        continue
-
-                    name, coords_str = line.split(":", 1)
-                    name = name.strip()
-                    # Remove brackets and split by comma
-                    coords_str = coords_str.strip().strip("() ")
-                    if coords_str:
-                        coords = tuple(map(int, coords_str.split(",")))
-                        self.regions[name] = coords
-            logging.info(f"Loaded regions from {self.coords_file}: {list(self.regions.keys())}")
-        except Exception as e:
-            logging.error(f"Error loading initial coordinates: {e}")
 
     async def _get_latest_update_id(self, bot):
         async with bot:
@@ -354,21 +349,27 @@ class AutoScriptApplication:
 
     def scan_all_regions(self, flow=FlowStatus.NONE):
         results = {}
-        target_regions = FLOW_REGIONS.get(flow)
+        all_found_regions = []
+        target_assets = FLOW_REGIONS.get(flow)
 
-        if target_regions is None:
-            regions_to_scan = list(self.regions.keys())
-        else:
-            regions_to_scan = [r for r in target_regions if r in self.regions]
+        region_coords = tuple(self.scan_region) if self.scan_region else None
 
-        for region_name in regions_to_scan:
-            region_coords = self.regions[region_name]
-            name, pos = find_multiple_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE, region=region_coords)
-            if name:
-                results[region_name] = ScanResult(name, pos)
+        name, pos, found_regions = find_multiple_assets(ASSETS, target_assets if target_assets else PRIORITY_LIST, 
+                                                       confidence=DEFAULT_CONFIDENCE, region=region_coords)
+        
+        if name:
+            for f_name, f_rect in found_regions:
+                results[f_name] = ScanResult(f_name, (f_rect[0] + f_rect[2]//2, f_rect[1] + f_rect[3]//2))
+            
+            all_found_regions.extend(found_regions)
 
-        # if results:
-        #     logging.info(f"Scan results: {list(results.keys())}")
+        render_items = []
+        if self.scan_region and len(self.scan_region) == 4:
+            render_items.append(("SCAN_AREA", tuple(self.scan_region)))
+        
+        render_items.extend(all_found_regions)
+        self.hud.update_regions(render_items, padding=5)
+
         return results
 
     def handle_fighting(self, scan_results):
@@ -399,18 +400,10 @@ class AutoScriptApplication:
             logging.info(f"Route #{self.route_count} started. ({self.ruong_nguyen_count} found)")
             return
 
-        res_l = scan_results.get("left_portal_text")
-        res_r = scan_results.get("right_portal_text")
-
         all_found = []
-        if "left_portal_text" in self.regions:
-            all_found_l = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE,
-                                          region=self.regions["left_portal_text"])
-            all_found.extend(all_found_l)
-        if "right_portal_text" in self.regions:
-            all_found_r = find_all_assets(ASSETS, PRIORITY_LIST, confidence=DEFAULT_CONFIDENCE,
-                                          region=self.regions["right_portal_text"])
-            all_found.extend(all_found_r)
+        for name, res in scan_results.items():
+            if name.startswith("lvl"):
+                all_found.append((name, res))
 
         unique_portals = set()
         for asset_name, _ in all_found:
@@ -420,17 +413,34 @@ class AutoScriptApplication:
             unique_portals.add(base_name)
 
         if len(unique_portals) < 2:
+            # If we don't see 2 different portals, maybe they haven't appeared yet
             return
 
+        # New logic: prioritize ruongNguyen, otherwise pick lowest level
         target = None
-        if res_l and res_r:
-            idx_l = PRIORITY_LIST.index(res_l.name) if res_l.name in PRIORITY_LIST else 999
-            idx_r = PRIORITY_LIST.index(res_r.name) if res_r.name in PRIORITY_LIST else 999
-            target = res_l if idx_l <= idx_r else res_r
-        elif res_l:
-            target = res_l
-        elif res_r:
-            target = res_r
+        ruong_nguyen_assets = [name for name, _ in all_found if name.startswith("lvl3_ruongNguyen")]
+        
+        if ruong_nguyen_assets:
+            # Pick the first ruongNguyen found
+            name = ruong_nguyen_assets[0]
+            # Find the ScanResult for this name
+            for n, res in all_found:
+                if n == name:
+                    target = res
+                    break
+        else:
+            # Pick portal with lowest level
+            min_lvl = 999
+            for name, res in all_found:
+                try:
+                    # Extract level from "lvlX_..."
+                    lvl_part = name.split("_")[0] # "lvlX"
+                    lvl = int(lvl_part[3:]) # X
+                    if lvl < min_lvl:
+                        min_lvl = lvl
+                        target = res
+                except (ValueError, IndexError):
+                    continue
 
         if target:
             name = target.name
@@ -509,8 +519,8 @@ class AutoScriptApplication:
 
     def handle_done(self, scan_results):
         self.current_flow = FlowStatus.NONE
-        self.found_treasure = False  # Reset flag
-        self.portal_count = 0  # Reset wave count
+        self.found_treasure = False
+        self.portal_count = 0
 
         if self.max_run <= 0:
             logging.info("Stopping application as planned after finishing the run.")
@@ -528,6 +538,16 @@ class AutoScriptApplication:
         self.listener.start()
 
         logging.info("AutoScriptApplication started.")
+        
+        logic_thread = threading.Thread(target=self.main_loop, daemon=True)
+        logic_thread.start()
+        
+        if self.hud:
+            self.hud.start()
+        else:
+            logic_thread.join()
+
+    def main_loop(self):
         try:
             while self.running:
                 asyncio.run(self.check_telegram_commands())
@@ -541,7 +561,6 @@ class AutoScriptApplication:
                     scan_results = self.scan_all_regions(FlowStatus.NONE)
                     self.current_flow = determine_flow(scan_results)
 
-                # 2. Xử lý theo flow
                 if self.current_flow == FlowStatus.FIGHTING:
                     self.unscreen_count = 0
                     scan_results = self.scan_all_regions(FlowStatus.FIGHTING)
@@ -565,7 +584,9 @@ class AutoScriptApplication:
                     self.unscreen_count += 1
                     logging.info(f"Flow {self.current_flow.value} - Waiting for recognizable screen... ({self.unscreen_count}/20)")
                     
-                    if self.unscreen_count >= 12: # 2 minutes
+                    self.update_hud()
+
+                    if self.unscreen_count >= 12:
                         logging.warning("Unrecognizable screen detected 20 times! Sending notification...")
                         msg = "⚠️ Cảnh báo: Không nhận diện được màn hình game (20 lần liên tiếp)."
                         import pyautogui
@@ -575,10 +596,10 @@ class AutoScriptApplication:
                         asyncio.run(send_telegram_photo(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, photo_path, caption=msg))
                         if os.path.exists(photo_path):
                             os.remove(photo_path)
-                        self.unscreen_count = 0 # Reset sau khi báo
+                        self.unscreen_count = 0
 
                     self.current_flow = FlowStatus.NONE
-                    self.sleep_time = 10
+                    self.sleep_time = 2
 
 
         except KeyboardInterrupt:

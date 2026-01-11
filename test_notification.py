@@ -4,8 +4,6 @@ from telegram import Bot
 import pyautogui
 import os
 import json
-
-# Load Telegram Config
 CONFIG_FILE = "config.json"
 def load_telegram_config():
     if os.path.exists(CONFIG_FILE):
@@ -14,22 +12,16 @@ def load_telegram_config():
                 config = json.load(f)
                 token = config.get("telegram_token", "")
                 chat_id = str(config.get("telegram_chat_id", ""))
-                
-                # Check for placeholders
                 if token in ["", "xx", "your_token_here"] or chat_id in ["", "yy", "your_chat_id_here"]:
                     return "", ""
                 return token, chat_id
         except Exception as e:
             print(f"Error loading {CONFIG_FILE}: {e}")
     return "", ""
-
 TELEGRAM_TOKEN, TELEGRAM_CHAT_ID = load_telegram_config()
-
 async def main_loop():
     title = "Auto Script Notification"
     message = "Found treasure"
-    
-    # Khởi tạo offset để bỏ qua các tin nhắn cũ
     last_update_id = -1
     try:
         bot = Bot(token=TELEGRAM_TOKEN)
@@ -38,13 +30,10 @@ async def main_loop():
             if updates:
                 last_update_id = updates[-1].update_id
                 print(f"Đã bỏ qua các tin nhắn cũ (ID cuối: {last_update_id})")
-            
             print(f"Bắt đầu vòng lặp gửi thông báo mỗi 20 giây...")
             print(f"Gửi 'stop' qua Telegram để dừng lại.")
-
             seconds_counter = 0
             while True:
-                # 1. Kiểm tra lệnh 'stop' từ Telegram mỗi giây
                 try:
                     updates = await bot.get_updates(offset=last_update_id + 1, timeout=1)
                     for update in updates:
@@ -58,21 +47,17 @@ async def main_loop():
                                 return
                 except Exception as e:
                     print(f"Lỗi khi kiểm tra lệnh: {e}")
-
-                # 2. Gửi thông báo mỗi 20 giây
                 if seconds_counter % 20 == 0:
                     print(f"[{seconds_counter}s] Đang capture màn hình và gửi thông báo: {message}...")
                     screenshot_path = "test_screenshot.png"
                     try:
                         img = pyautogui.screenshot()
                         img.save(screenshot_path)
-                        
                         if os.path.exists(screenshot_path):
                             success = await send_telegram_photo(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, screenshot_path, caption=f"🔔 {title}\n{message}")
                         else:
                             print(f"Lỗi: Không thể tạo file screenshot {screenshot_path}")
                             success = await send_telegram_message(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, f"🔔 {title}\n{message} (Không kèm ảnh do lỗi capture)")
-                        
                         if success:
                             print("Đã gửi thành công kèm ảnh.")
                         else:
@@ -80,16 +65,13 @@ async def main_loop():
                     except Exception as e:
                         print(f"Lỗi khi capture/gửi ảnh: {e}")
                         await send_telegram_message(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, f"🔔 {title}\n{message} (Lỗi: {e})")
-                    
                     # Xóa file sau khi gửi
                     if os.path.exists(screenshot_path):
                         os.remove(screenshot_path)
-
                 seconds_counter += 1
                 await asyncio.sleep(1)
     except Exception as e:
         print(f"Lỗi khởi tạo hoặc thực thi bot: {e}")
-
 if __name__ == "__main__":
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         try:
