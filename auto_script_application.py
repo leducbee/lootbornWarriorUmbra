@@ -599,7 +599,7 @@ class AutoScriptApplication:
                         self.unscreen_count = 0
 
                     self.current_flow = FlowStatus.NONE
-                    self.sleep_time = 2
+                    self.sleep_time = 10
 
 
         except KeyboardInterrupt:
