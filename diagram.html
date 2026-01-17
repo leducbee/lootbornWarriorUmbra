@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ quy trình (Diagram)</title>
+    <!-- Nhúng thư viện Mermaid.js từ CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: false, 
+            securityLevel: 'loose',
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true
+            }
+        });
+
+        async function renderDiagram() {
+            try {
+                const { render } = mermaid;
+                const container = document.getElementById('mermaid-container');
+                const graphDefinition = `
+                    graph TD
+                        START((Bắt đầu)) --> A[A: Detect auto img]
+                        
+                        A -- True --> B{B: treasureFound < max_run?}
+                        A -- False --> C{C: Detect end win 2s}
+                        
+                        C -- True --> DONE_ACTION[Click done]
+                        C -- False --> H
+                        
+                        B -- True --> B1[B1: Update runCount, Log, Click Auto/Start]
+                        B -- False --> B2[B2: Show Stop message]
+                        
+                        B1 --> F{F: Detect treasure 24s}
+                        
+                        F -- True --> I[I: treasureFound++ & Log]
+                        F -- False --> J{J: Detect back}
+                        
+                        J -- True --> J_BACK[Click back]
+                        J_BACK --> J1{J1: Detect confirm 2s}
+                        J -- False --> ENDLOOP
+                        
+                        J1 -- True --> CONFIRM_ACTION[Click confirm]
+                        J1 -- False --> J2{J2: Detect back 2s}
+                        
+                        J2 -- True --> J2_BACK[Click back]
+                        J2_BACK --> J3{J3: Detect confirm 2s}
+                        J2 -- False --> ENDLOOP
+                        
+                        J3 -- True --> CONFIRM_ACTION
+                        J3 -- False --> ENDLOOP
+                        
+                        I --> K{K: Detect win 2 phút}
+                        
+                        K -- True --> DONE_ACTION
+                        K -- False --> H{H: Detect fail 2s}
+                        
+                        H -- True --> FAIL_ACTION[Click Failed]
+                        H -- False --> ENDLOOP
+
+                        CONFIRM_ACTION --> FAIL_ACTION
+                        DONE_ACTION --> ENDLOOP
+                        FAIL_ACTION --> ENDLOOP
+
+                        B2 --> ENDLOOP
+                        
+                        ENDLOOP[End Loop] -- New loop --> A
+                `;
+                
+                const { svg } = await render('mermaid-svg', graphDefinition);
+                container.innerHTML = svg;
+                
+                // Sau khi render xong, gán sự kiện click
+                setTimeout(initHighlight, 100); // Delay một chút để đảm bảo SVG đã ổn định trong DOM
+            } catch (error) {
+                console.error("Mermaid render error:", error);
+            }
+        }
+
+        function initHighlight() {
+            const container = document.getElementById('mermaid-container');
+            const nodes = document.querySelectorAll('.node');
+            const edges = document.querySelectorAll('.edgePath'); 
+
+            function clearHighlights() {
+                document.querySelectorAll('.highlight-node, .highlight-edge').forEach(el => {
+                    el.classList.remove('highlight-node', 'highlight-edge');
+                });
+                // Reset markers
+                document.querySelectorAll('marker path').forEach(p => {
+                    p.style.fill = '';
+                    p.style.stroke = '';
+                });
+            }
+
+            // Tạo "vùng click" (hit area) rộng hơn cho các đường line
+            edges.forEach(edge => {
+                const paths = edge.querySelectorAll('path.path'); 
+                paths.forEach(path => {
+                    // Tạo một path ẩn nhưng rộng hơn để dễ click
+                    const hitArea = path.cloneNode(true);
+                    hitArea.setAttribute('stroke-width', '30'); 
+                    hitArea.setAttribute('stroke', 'rgba(0,0,0,0)'); 
+                    hitArea.setAttribute('fill', 'none');
+                    hitArea.style.cursor = 'pointer';
+                    hitArea.style.pointerEvents = 'stroke'; 
+                    hitArea.classList.add('edge-hit-area');
+                    hitArea.removeAttribute('id'); 
+                    
+                    // Thêm hitArea vào sau path gốc
+                    path.parentNode.insertBefore(hitArea, path.nextSibling);
+
+                    const handleEdgeClick = function(e) {
+                        e.stopPropagation();
+                        clearHighlights();
+                        
+                        // Highlight chính cái edgePath chứa path này
+                        highlightElement(edge);
+
+                        // Tìm label tương ứng dựa trên class L-A-B hoặc LS-A_to_B
+                        const classes = Array.from(edge.classList).filter(c => c.startsWith('L-') || c.startsWith('LS-'));
+                        if (classes.length > 0) {
+                            classes.forEach(cls => {
+                                document.querySelectorAll('.' + cls).forEach(el => {
+                                    if (el !== edge) highlightElement(el);
+                                });
+                            });
+                        }
+                    };
+
+                    hitArea.addEventListener('click', handleEdgeClick);
+                });
+            });
+
+            function highlightElement(el) {
+                el.classList.add('highlight-edge');
+                
+                // Nếu là edgePath hoặc label
+                let paths = Array.from(el.querySelectorAll('path:not(.edge-hit-area)'));
+                if (el.tagName.toLowerCase() === 'path' && !el.classList.contains('edge-hit-area')) {
+                    paths.push(el);
+                }
+
+                paths.forEach(p => {
+                    p.classList.add('highlight-edge');
+                    // Xử lý Marker (đầu mũi tên)
+                    const markerEnd = window.getComputedStyle(p).getPropertyValue('marker-end');
+                    if (markerEnd && markerEnd !== 'none') {
+                        const markerId = markerEnd.match(/url\(['"]?#([^'"]+)['"]?\)/)?.[1];
+                        if (markerId) {
+                            const markerPath = document.querySelector(`#${markerId} path`);
+                            if (markerPath) {
+                                markerPath.style.setProperty('fill', '#ff0000', 'important');
+                                markerPath.style.setProperty('stroke', '#ff0000', 'important');
+                            }
+                        }
+                    }
+                });
+                
+                // Xử lý Text/Label
+                const labels = el.classList.contains('edgeLabel') ? [el] : el.querySelectorAll('.edgeLabel');
+                labels.forEach(l => {
+                    l.classList.add('highlight-edge');
+                    const spans = l.querySelectorAll('span');
+                    spans.forEach(s => s.classList.add('highlight-edge'));
+                });
+            }
+
+            nodes.forEach(node => {
+                node.style.cursor = 'pointer';
+                node.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    clearHighlights();
+                    this.classList.add('highlight-node');
+                    const shapes = this.querySelectorAll('rect, circle, polygon, path, ellipse');
+                    shapes.forEach(s => s.classList.add('highlight-node'));
+                });
+            });
+
+            // Gán sự kiện cho label text (vẫn giữ để có thể click trực tiếp vào chữ)
+            document.querySelectorAll('.edgeLabel').forEach(label => {
+                label.style.cursor = 'pointer';
+                label.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    clearHighlights();
+                    
+                    // Highlight chính cái label này
+                    highlightElement(this);
+
+                    // Tìm edgePath tương ứng dựa trên class L-A-B hoặc LS-A_to_B
+                    const classes = Array.from(this.classList).filter(c => c.startsWith('L-') || c.startsWith('LS-'));
+                    if (classes.length > 0) {
+                        classes.forEach(cls => {
+                            document.querySelectorAll('.' + cls).forEach(el => {
+                                if (el !== this) highlightElement(el);
+                            });
+                        });
+                    }
+                });
+            });
+
+            // Click ra ngoài để xóa highlight
+            document.addEventListener('click', function() {
+                clearHighlights();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderDiagram();
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: calc(100% - 30px);
+            margin: 0 auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+        #mermaid-container {
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        #mermaid-container svg {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        /* Style cho highlight */
+        .highlight-node, .highlight-node * {
+            stroke: #ff0000 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5));
+        }
+        .highlight-edge {
+            stroke: #ff0000 !important;
+            stroke-width: 4px !important;
+            color: #ff0000 !important;
+            fill: none !important;
+            font-weight: bold !important;
+            filter: drop-shadow(0 0 3px rgba(255, 0, 0, 0.5));
+            transition: all 0.2s ease;
+        }
+        .highlight-edge path:not(.edge-hit-area) {
+            stroke: #ff0000 !important;
+            stroke-width: 4px !important;
+            fill: none !important;
+        }
+        .highlight-edge span {
+            color: #ff0000 !important;
+            font-weight: bold !important;
+        }
+        /* Hit area luôn trong suốt */
+        .edge-hit-area {
+            stroke: rgba(0,0,0,0) !important;
+            fill: none !important;
+            stroke-width: 30px !important;
+            pointer-events: stroke !important;
+            cursor: pointer;
+        }
+        /* Riêng text label thì không dùng stroke để tránh bị nhòe */
+        .highlight-edge.edgeLabel span, .highlight-edge.edgeLabel {
+            stroke: none !important;
+            fill: #ff0000 !important;
+            color: #ff0000 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sơ đồ quy trình Auto Flow (Updated)</h1>
+        
+        <div id="mermaid-container"></div>
+    </div>
+</body>
+</html>
